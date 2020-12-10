@@ -222,7 +222,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendAngleButton.connect('clicked(bool)', self.onSendAngleButton)
     self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
-
+    self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     
     #self.timer = qt.QTimer()
     
@@ -309,6 +309,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     else:
       print('- Initialization code NOT sent -\n')
 
+  def onsendMoveButton(self):
+    if self.logic.sendMove():
+      print('- Move code sent -\n')
+    else:
+      print('- Move code NOT sent -\n')
+
   def onSendReconnectButton(self):
     if self.logic.sendReconnect():
       print('- Reconnection code sent -\n')
@@ -327,6 +333,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       target_list = slicer.util.getNode("target")
       ras_target = [0.0,0.0,0.0]
       target_list.GetNthFiducialPosition(0, ras_target)
+      self.sendMoveButton.enabled = True
     except:
       print('- No Target selected -\n')
       return
@@ -412,6 +419,25 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
 
+  def sendMove(self):
+    try:
+      self.moveText = slicer.util.getNode('MOVE')
+    except:
+      self.moveText = slicer.vtkMRMLTextNode()
+      self.moveText.SetName("MOVE")
+      self.moveText.SetText("MOVE")
+      slicer.mrmlScene.AddNode(self.moveText)
+    if self.cnode.GetState() == 2:
+      self.cnode.RegisterOutgoingMRMLNode(self.moveText)
+      self.cnode.PushNode(self.moveText)
+      time.sleep(0.1)
+      self.cnode.UnregisterOutgoingMRMLNode(self.moveText)    
+      return True
+    else:
+      print(' Connection not stablished, check OpenIGTLink -')
+      return False
+
+
   def sendInit(self):
     try:
       self.initText = slicer.util.getNode('INIT')
@@ -429,6 +455,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     else:
       print(' Connection not stablished, check OpenIGTLink -')
       return False
+
+
 
 
   def sendReconnect(self):
