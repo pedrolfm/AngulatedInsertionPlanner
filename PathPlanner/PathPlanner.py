@@ -4,6 +4,8 @@ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
 import numpy as np
+import sys
+import time
 #
 # PathPlanner
 #
@@ -40,7 +42,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
-
+    self.logic = PathPlannerLogic()
     # Instantiate and connect widgets ...
 
     #
@@ -68,20 +70,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.setToolTip( "Pick the prostate image to select the target." )
     parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
 
-    #
-    # segmented volume selector
-    #
-    self.anatomySelector = slicer.qMRMLNodeComboBox()
-    self.anatomySelector.nodeTypes = ["vtkMRMLLabelMapVolumeNode"]
-    self.anatomySelector.selectNodeUponCreation = True
-    self.anatomySelector.addEnabled = False
-    self.anatomySelector.removeEnabled = False
-    self.anatomySelector.noneEnabled = False
-    self.anatomySelector.showHidden = False
-    self.anatomySelector.showChildNodeTypes = False
-    self.anatomySelector.setMRMLScene( slicer.mrmlScene )
-    self.anatomySelector.setToolTip( "Pick the anatomy segmentation." )
-    parametersFormLayout.addRow("Anatomy segmentation: ", self.anatomySelector)
 
     #
     # target selector
@@ -98,20 +86,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.targetSelector.setToolTip( "Pick the target list." )
     parametersFormLayout.addRow("Target: ", self.targetSelector)
 
-    #
-    # output volume selector
-    #
-    self.outputSelector = slicer.qMRMLNodeComboBox()
-    self.outputSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-    self.outputSelector.selectNodeUponCreation = True
-    self.outputSelector.addEnabled = True
-    self.outputSelector.removeEnabled = True
-    self.outputSelector.noneEnabled = True
-    self.outputSelector.showHidden = False
-    self.outputSelector.showChildNodeTypes = False
-    self.outputSelector.setMRMLScene( slicer.mrmlScene )
-    self.outputSelector.setToolTip( "Pick the output to the algorithm." )
-    parametersFormLayout.addRow("Output Volume: ", self.outputSelector)
 
     #
     # Target Button
@@ -155,14 +129,128 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleYWidget.setToolTip("needle guide angulation")
     angulationFormLayout.addRow("Angle 2", self.angleYWidget)
 
-
     # connections
-    self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
-    self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
+    #self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
+    #self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-    self.anatomySelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect) #TODO: REMOVE
+   
+
+    #
+    # Connection area
+    #
+    ConnectionCollapsibleButton = ctk.ctkCollapsibleButton()
+    ConnectionCollapsibleButton.text = "Connection with Smart Template" 
+    ConnectionFormLayout = qt.QGridLayout(ConnectionCollapsibleButton) #QBoxLayout(ConnectionCollapsibleButton)
+    
+    # Connect Button
+    self.openIGTL = qt.QPushButton("Connect")
+    self.openIGTL.toolTip = "Start openIGTLink"
+    self.openIGTL.enabled = True
+    #self.layout.addWidget(self.openIGTL)
+
+    
+    # zFrame Button
+    self.zFrameButton = qt.QPushButton("zFrame")
+    self.zFrameButton.toolTip = "Send zFrame"
+    self.zFrameButton.enabled = False
+    # Target Button
+    self.sendTargetButton = qt.QPushButton("Target")
+    self.sendTargetButton.toolTip = "send Target"
+    self.sendTargetButton.enabled = False
+    # Angles Button
+    self.sendAngleButton = qt.QPushButton("Angles")
+    self.sendAngleButton.toolTip = "send desired Angulation"
+    self.sendAngleButton.enabled = False
+
+    # Move Button
+    self.sendMoveButton = qt.QPushButton("Move")
+    self.sendMoveButton.toolTip = "start motion"
+    self.sendMoveButton.enabled = False
+
+    # Init Button
+    self.sendInitButton = qt.QPushButton("Init ST")
+    self.sendInitButton.toolTip = "initialization"
+    self.sendInitButton.enabled = False
+
+    # Reconnect to galil
+    self.sendReconnectButton = qt.QPushButton("Reconnect")
+    self.sendReconnectButton.toolTip = "Reconect to Galil serial comunication"
+    self.sendReconnectButton.enabled = False
+
+
+    self.footSwitchStatus = qt.QLabel()
+    self.footSwitchStatus.setText("Switch OFF")
+    self.footSwitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.connectionStatus = qt.QLabel()
+    self.connectionStatus.setText("Not connected")
+    self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.zFrameStatus = qt.QLabel()
+    self.zFrameStatus.setText("No connection")
+    self.zFrameStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.targetStatus = qt.QLabel()
+    self.targetStatus.setText("No connection")
+    self.targetStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.angleStatus = qt.QLabel()
+    self.angleStatus.setText("No connection")
+    self.angleStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.layout.addWidget(ConnectionCollapsibleButton)
+    ConnectionFormLayout.addWidget(self.zFrameButton,1,1)
+    ConnectionFormLayout.addWidget(self.sendTargetButton,1,2)
+    ConnectionFormLayout.addWidget(self.sendAngleButton,1,3)
+    ConnectionFormLayout.addWidget(self.openIGTL,0,1)
+    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,3)
+    ConnectionFormLayout.addWidget(self.connectionStatus,0,2)
+    ConnectionFormLayout.addWidget(self.sendMoveButton,3,2)
+    ConnectionFormLayout.addWidget(self.zFrameStatus,2,1)
+    ConnectionFormLayout.addWidget(self.targetStatus,2,2)
+    ConnectionFormLayout.addWidget(self.angleStatus,2,3)
+    ConnectionFormLayout.addWidget(self.sendInitButton,3,1)
+
+
+
+    # connections
+    self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
+    self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
+    self.sendTargetButton.connect('clicked(bool)', self.onSendTargetButton)
+    self.sendAngleButton.connect('clicked(bool)', self.onSendAngleButton)
+    self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
+    self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
+
+    
+    #self.timer = qt.QTimer()
+    
+    #self.timer.connect('timeout(bool)', self.onTimeout)
+
+    #self.timer.timeout.connect(self.onTimeout)
+    #self.timer.setSingleShot(True)
+    #self.timer.start(10000)
+    qt.QTimer.singleShot(2000, self.onTimeout)
+
+    #
+    # Status Area
+    #
+    statusCollapsibleButton = ctk.ctkCollapsibleButton()
+    statusCollapsibleButton.text = "Smart Template angles"
+    self.layout.addWidget(statusCollapsibleButton)
+
+    statusFormLayout = qt.QFormLayout(statusCollapsibleButton)
+
+    self.systemStatus = qt.QLabel()
+    self.systemStatus.setText("No zFrame ; No connection ")
+    self.systemStatus.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.targetStatus = qt.QLabel()
+    self.targetStatus.setText("No target ; No angle ")
+    self.targetStatus.setStyleSheet("background-color: white;border: 1px solid black;")
+    
+    statusFormLayout.addRow("Target and angle:", self.systemStatus)
+    statusFormLayout.addRow("zFrame and connection:", self.targetStatus)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -170,8 +258,96 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     # Refresh Apply button state
     self.onSelect()
 
-    slicer.util.selectModule('CurveMaker')
-    self.cmlogic = slicer.modules.CurveMakerWidget.logic
+
+  def onTimeout(self):
+    try:
+      self.igtl = slicer.util.getNode('OIGTL*')
+      if self.igtl.GetState() == 0:
+        self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+        self.connectionStatus.setText("IGTL - OFF")
+      elif self.igtl.GetState() == 1:
+        self.connectionStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
+        self.connectionStatus.setText("IGTL - WAIT")
+      elif self.igtl.GetState() == 2:
+        self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+        self.connectionStatus.setText("IGTL - ON")
+        try:
+          self.status1 = slicer.util.getNode('statusTarget')
+          self.status2 = slicer.util.getNode('statusZ-Frame')
+          self.targetStatus.setText(self.status2.GetText())
+          self.systemStatus.setText(self.status1.GetText())
+        except:
+          print("No status received yet")
+    except:
+      print("timer4")
+      self.systemStatus.setText("No connection")
+      self.targetStatus.setText("No connection")
+      
+    qt.QTimer.singleShot(2000, self.onTimeout)
+
+  def onzFrameButton(self):
+    if self.logic.sendZFrame():
+      print('- zFrame sent -\n')
+    else:
+      print('- zFrame NOT sent -\n')
+
+  def onSendAngleButton(self):
+    try:
+      self.angleTransformation = slicer.util.getNode('angleTransformation')
+    except:
+      self.angleTransformation = slicer.vtkMRMLLinearTransformNode()
+      self.angleTransformation.SetName("angleTransformation")
+      slicer.mrmlScene.AddNode(self.angleTransformation)
+    if self.logic.sendAngle(self.angleTransformation,self.angleXWidget,self.angleYWidget):
+      print('- Angle sent -\n')
+    else:
+      print('- Angle NOT sent -\n')
+
+  def onSendInitButton(self):
+    if self.logic.sendInit():
+      print('- Initialization code sent -\n')
+    else:
+      print('- Initialization code NOT sent -\n')
+
+  def onSendReconnectButton(self):
+    if self.logic.sendReconnect():
+      print('- Reconnection code sent -\n')
+    else:
+      print('- Reconnection code NOT sent -\n')
+
+
+  def onSendTargetButton(self):
+    try:
+      self.targetTransformation = slicer.util.getNode('targetTransformation')
+    except:
+      self.targetTransformation = slicer.vtkMRMLLinearTransformNode()
+      self.targetTransformation.SetName("targetTransformation")
+      slicer.mrmlScene.AddNode(self.targetTransformation)
+    try:
+      target_list = slicer.util.getNode("target")
+      ras_target = [0.0,0.0,0.0]
+      target_list.GetNthFiducialPosition(0, ras_target)
+    except:
+      print('- No Target selected -\n')
+      return
+    
+    if self.logic.sendTarget(self.targetTransformation,ras_target):
+      print('- Target sent -\n')
+    else:
+      print('- Target NOT sent -\n')
+
+
+  def onOpenIGTL(self):
+    if self.logic.openConnection():
+      self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+      self.connectionStatus.setText("OpenIGTL")
+      self.zFrameButton.enabled = True
+      self.sendTargetButton.enabled = True
+      self.sendAngleButton.enabled = True
+      
+      self.sendInitButton.enabled = True
+      self.sendReconnectButton.enabled = True
+
 
   def cleanup(self):
     pass
@@ -184,19 +360,17 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     except:
       print('No path selected yet')
-
-
-
     self.cmlogic.updateCurve()
 
 
   def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode() and self.anatomySelector.currentNode()
+    self.applyButton.enabled = self.inputSelector.currentNode()
 
   def onApplyButton(self):
-    logic = PathPlannerLogic()
+
     imageThreshold = 0
-    logic.run(self.inputSelector.currentNode(), self.anatomySelector.currentNode(), self.angleXWidget, self.angleYWidget, self.cmlogic)
+    self.logic.run(self.inputSelector.currentNode(), self.angleXWidget, self.angleYWidget)
+
 
   def onSelectTarget(self):
 
@@ -231,49 +405,147 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     path_points.SetNthFiducialPosition(2, _point3[0], _point3[1], _point3[2])
 
 
-
-
-
 #
 # PathPlannerLogic
 #
 
 class PathPlannerLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
 
-  def hasImageData(self,volumeNode):
-    """This is an example logic method that
-    returns true if the passed in volume
-    node has valid image data
-    """
-    if not volumeNode:
-      logging.debug('hasImageData failed: no volume node')
+
+  def sendInit(self):
+    try:
+      self.initText = slicer.util.getNode('INIT')
+    except:
+      self.initText = slicer.vtkMRMLTextNode()
+      self.initText.SetName("INIT")
+      self.initText.SetText("INIT")
+      slicer.mrmlScene.AddNode(self.initText)
+    if self.cnode.GetState() == 2:
+      self.cnode.RegisterOutgoingMRMLNode(self.initText)
+      self.cnode.PushNode(self.initText)
+      time.sleep(0.1)
+      self.cnode.UnregisterOutgoingMRMLNode(self.initText)    
+      return True
+    else:
+      print(' Connection not stablished, check OpenIGTLink -')
       return False
-    if volumeNode.GetImageData() is None:
-      logging.debug('hasImageData failed: no image data in volume node')
+
+
+  def sendReconnect(self):
+    try:
+      self.ReconnectText = slicer.util.getNode('SERIAL')
+    except:
+      self.ReconnectText = slicer.vtkMRMLTextNode()
+      self.ReconnectText.SetName("SERIAL")
+      self.ReconnectText.SetText("SERIAL")
+      slicer.mrmlScene.AddNode(self.ReconnectText)
+    if self.cnode.GetState() == 2:
+      self.cnode.RegisterOutgoingMRMLNode(self.ReconnectText)
+      self.cnode.PushNode(self.ReconnectText)
+      time.sleep(0.1)
+      self.cnode.UnregisterOutgoingMRMLNode(self.ReconnectText)    
+      return True
+    else:
+      print(' Connection not stablished, check OpenIGTLink -')
       return False
+
+
+
+  def sendAngle(self,angleTransformation,sliderX,sliderY):
+
+    X = sliderX.value
+    Y = sliderY.value
+
+    try:
+      vTransform = vtk.vtkTransform()
+      vTransform.RotateX(X)
+      vTransform.RotateY(Y)  
+      angleTransformation.SetAndObserveMatrixTransformToParent(vTransform.GetMatrix())
+      print(angleTransformation)
+      
+      if self.cnode.GetState() == 2:
+        self.cnode.RegisterOutgoingMRMLNode(angleTransformation)
+        self.cnode.PushNode(angleTransformation)
+        time.sleep(0.1)
+        self.cnode.UnregisterOutgoingMRMLNode(angleTransformation)    
+        return True
+      else:
+        print(' Connection not stablished yet -')
+        return False
+    except:
+      e = sys.exc_info()
+      print(e)
+      print('- Check openIGTLink connection-')
+      return False
+
+
+  def sendTarget(self,targetTransformation,ras_target):
+    
+    try:
+      vTransform = vtk.vtkTransform()
+      vTransform.Translate(ras_target[0],ras_target[1],ras_target[2])      
+      targetTransformation.SetAndObserveMatrixTransformToParent(vTransform.GetMatrix())
+      
+      if self.cnode.GetState() == 2:
+
+        self.cnode.RegisterOutgoingMRMLNode(targetTransformation)
+        self.cnode.PushNode(targetTransformation)
+        time.sleep(0.1)
+        self.cnode.UnregisterOutgoingMRMLNode(targetTransformation)    
+        return True
+      else:
+        print(' Connection not stablished yet -')
+        return False
+    except slicer.util.MRMLNodeNotFoundException:
+      print('- There is no Target on Slicer scene -')
+      return False
+    except:
+      e = sys.exc_info()
+      print(e)
+      print('- Check openIGTLink connection-')
+      return False
+
+
+
+  def sendZFrame(self):
+    try:
+      self.zFrameTransformation = slicer.util.getNode('*ZFrameT*')
+      self.zFrameTransformation.SetName("zFrameTransformation") 
+      print(' - Z frame there. -')
+      if self.cnode.GetState() == 2:
+        self.cnode.RegisterOutgoingMRMLNode(self.zFrameTransformation)
+        self.cnode.PushNode(self.zFrameTransformation)
+        print(self.cnode.GetState())
+        time.sleep(0.1)
+        self.cnode.UnregisterOutgoingMRMLNode(self.zFrameTransformation)    
+        return True
+      else:
+        print('- Connection not stablished yet -')
+        return False
+    except slicer.util.MRMLNodeNotFoundException:
+      print('- There is no zFrame on Slicer scene -')
+      return False
+    except:
+      e = sys.exc_info()
+      print(e)
+      print('- Check openIGTLink connection-')
+      return False
+
+  def openConnection(self):
+
+    if slicer.util.getNodesByClass('vtkMRMLIGTLConnectorNode'):
+      self.cnode = slicer.util.getNode('OIGTL*')
+      print(' - openIGTLink already open -')
+    else:
+      self.cnode = slicer.vtkMRMLIGTLConnectorNode()
+      slicer.mrmlScene.AddNode(self.cnode)
+      self.cnode.SetTypeServer(18944)
+      self.cnode.SetName("OIGTL")
+      self.cnode.Start()
+    
     return True
 
-  def isValidInputOutputData(self, inputVolumeNode, outputVolumeNode):
-    """Validates if the output is not the same as input
-    """
-    if not inputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no input volume node defined')
-      return False
-    if not outputVolumeNode:
-      logging.debug('isValidInputOutputData failed: no output volume node defined')
-      return False
-    if inputVolumeNode.GetID()==outputVolumeNode.GetID():
-      logging.debug('isValidInputOutputData failed: input and output volume is the same. Create a new volume for output to avoid this error.')
-      return False
-    return True
+    
 
   def createModels(self,labelMapNode, modelHierarchyNode):
 
@@ -298,27 +570,14 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     slicer.cli.run(modelMakerCLI, None, modelMakerParameters, True)
 
-  def run(self, inputVolume, anatomySelector,angleXWidget, angleYWidget, cmlogic):
+  def run(self, inputVolume,angleXWidget, angleYWidget):
 
-    # Create 3D models
-    print "Creating 3D surface models for %s " % anatomySelector
-    modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
+    slicer.util.selectModule('ZFrameRegistrationWithROI')
 
-    slicer.mrmlScene.AddNode(modelHierarchyNode)
-    self.createModels(anatomySelector, modelHierarchyNode)
+    slicer.util.selectModule('CurveMaker')
+    cmlogic = slicer.modules.CurveMakerWidget.logic
 
-    chnode = modelHierarchyNode.GetNthChildNode(3)
-    mnode = chnode.GetAssociatedNode()
-    objectPoly = mnode.GetPolyData()
-
-    centerOfmass = vtk.vtkCenterOfMass()
-    centerOfmass.SetInputData(objectPoly)
-    centerOfmass.SetUseScalarsAsWeights(False)
-    centerOfmass.Update()
-    center = centerOfmass.GetCenter()
-    print(center)
-
-
+    
     target_list = slicer.util.getNode("target")
 
 
