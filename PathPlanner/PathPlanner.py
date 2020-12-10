@@ -509,8 +509,11 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def sendZFrame(self):
     try:
-      self.zFrameTransformation = slicer.util.getNode('*ZFrameT*')
-      self.zFrameTransformation.SetName("zFrameTransformation") 
+      try:
+        self.zFrameTransformation = slicer.util.getNode('zFrameTransformation')
+      except:
+        self.zFrameTransformation = slicer.mrmlScene.CopyNode(slicer.util.getNode('*ZFrameT*'))
+        self.zFrameTransformation.SetName("zFrameTransformation")
       print(' - Z frame there. -')
       if self.cnode.GetState() == 2:
         self.cnode.RegisterOutgoingMRMLNode(self.zFrameTransformation)
