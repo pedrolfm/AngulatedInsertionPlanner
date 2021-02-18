@@ -1,6 +1,7 @@
 import os
 import unittest
 import vtk, qt, ctk, slicer
+#from qt.QtWidgets import QTableWidgetItem
 from slicer.ScriptedLoadableModule import *
 import logging
 import numpy as np
@@ -68,8 +69,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.showChildNodeTypes = False
     self.inputSelector.setMRMLScene( slicer.mrmlScene )
     self.inputSelector.setToolTip( "Pick the prostate image to select the target." )
-    parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
+ #   parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
 
+
+    self.reloadTarget = qt.QPushButton("reload")
+    self.reloadTarget.toolTip = "Reload Target"
+    self.reloadTarget.enabled = True
 
     #
     # target selector
@@ -95,6 +100,17 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.selectTarget.enabled = True
     parametersFormLayout.addRow(self.selectTarget)
 
+    #
+    # Add target table
+    #
+    
+    self.targetTable = qt.QTableWidget()
+    self.targetTable.setRowCount(1)
+    self.targetTable.setColumnCount(4)
+    self.targetTable.setHorizontalHeaderLabels(['Name', 'R', 'A', 'S'])
+
+    parametersFormLayout.addRow(self.reloadTarget)
+    parametersFormLayout.addRow(self.targetTable)
 
     #
     # Apply Button
@@ -130,8 +146,8 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     angulationFormLayout.addRow("Angle 2", self.angleYWidget)
 
     # connections
-    #self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
-    #self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
+    self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
+    self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
@@ -223,6 +239,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
+    self.reloadTarget.connect('clicked(bool)', self.onReloadTarget)
     
     #self.timer = qt.QTimer()
     
@@ -257,6 +274,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     # Refresh Apply button state
     self.onSelect()
+
 
 
   def onTimeout(self):
@@ -308,6 +326,24 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('- Initialization code sent -\n')
     else:
       print('- Initialization code NOT sent -\n')
+
+  def onReloadTarget(self):
+    try:
+      targets = self.targetSelector.currentNode()
+      ras_target = [0.0,0.0,0.0]
+      nOfFiducials = targets.GetNumberOfFiducials()
+      self.targetTable.setRowCount(nOfFiducials)
+      for n in range(nOfFiducials):
+          targets.GetNthFiducialPosition(n, ras_target)
+          self.targetTable.setItem(n,1, qt.QTableWidgetItem(str(ras_target[0])))
+          self.targetTable.setItem(n,2, qt.QTableWidgetItem(str(ras_target[1])))
+          self.targetTable.setItem(n,3, qt.QTableWidgetItem(str(ras_target[2])))
+          self.targetTable.setItem(n,0, qt.QTableWidgetItem(targets.GetNthFiducialLabel(n)))
+          print(ras_target)
+
+    except:
+      print('- No target list? -\n')
+
 
   def onsendMoveButton(self):
     if self.logic.sendMove():
@@ -363,11 +399,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     try:
       path_points = slicer.util.getNode('path')
-      self.updatePoints(path_points, 100.0)
-
     except:
       print('No path selected yet')
-    self.cmlogic.updateCurve()
+      return
+    self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value)
+    
 
 
   def onSelect(self):
@@ -376,29 +412,39 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onApplyButton(self):
 
     imageThreshold = 0
-    self.logic.run(self.inputSelector.currentNode(), self.angleXWidget, self.angleYWidget)
+    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget)
 
 
   def onSelectTarget(self):
-
     try:
-      target_list = slicer.util.getNode('target')
-    except slicer.util.MRMLNodeNotFoundException:
-      target_list = slicer.vtkMRMLMarkupsFiducialNode()
-      target_list.SetName('target')
-      slicer.mrmlScene.AddNode(target_list)
+        self.selectedTarget = [0.0,0.0,0.0];
+        row = self.targetTable.currentItem().row()
+        targets = self.targetSelector.currentNode()
+        targets.GetNthFiducialPosition(row, self.selectedTarget)
+        self.angleXWidget.value = 0.0
+        self.angleYWidget.value = 0.0
+        print(self.selectedTarget)
+        
+    except:
+      print("No target selected")
+    
 
-    slicer.modules.markups.logic().StartPlaceMode(0)
+#
+# PathPlannerLogic
+#
 
-  def updatePoints(self,path_points,distance_to_zFrame):
+class PathPlannerLogic(ScriptedLoadableModuleLogic):
+
+
+  def updatePoints(self,path_points,distance_to_zFrame,angleX,angleY):
     _point1 = [0.0, 0.0, 0.0]
     _point2 = [0.0, 0.0, 0.0]
     _point3 = [0.0, 0.0, 0.0]
     path_points.GetNthFiducialPosition(0, _point1)
     path_points.GetNthFiducialPosition(1, _point2)
     path_points.GetNthFiducialPosition(2, _point3)
-    _angleX = (self.angleXWidget.value)*3.14/180
-    _angleY = (self.angleYWidget.value)*3.14/180
+    _angleX = (angleX)*3.14/180
+    _angleY = (angleY)*3.14/180
 
     _point3[0] = _point1[0] + distance_to_zFrame * np.sin(_angleX)
     _point3[1] = _point1[1] + distance_to_zFrame * np.sin(_angleY)
@@ -410,13 +456,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     path_points.SetNthFiducialPosition(1, _point2[0], _point2[1], _point2[2])
     path_points.SetNthFiducialPosition(2, _point3[0], _point3[1], _point3[2])
-
-
-#
-# PathPlannerLogic
-#
-
-class PathPlannerLogic(ScriptedLoadableModuleLogic):
+    self.cmlogic.updateCurve()
 
 
   def sendMove(self):
@@ -601,19 +641,14 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     slicer.cli.run(modelMakerCLI, None, modelMakerParameters, True)
 
-  def run(self, inputVolume,angleXWidget, angleYWidget):
 
-    slicer.util.selectModule('ZFrameRegistrationWithROI')
-
-    slicer.util.selectModule('CurveMaker')
-    cmlogic = slicer.modules.CurveMakerWidget.logic
-
-    
-    target_list = slicer.util.getNode("target")
-
-
+  def path(self,angleXWidget, angleYWidget,selected_path):
+        
+ #   slicer.util.selectModule('CurveMaker')
+    self.cmlogic = slicer.modules.CurveMakerWidget.logic
     try:
       path_points = slicer.util.getNode('path')
+            
     except slicer.util.MRMLNodeNotFoundException:
       path_points = slicer.vtkMRMLMarkupsFiducialNode()
       path_points.SetName('path')
@@ -621,7 +656,44 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
       anatomy_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
       template_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
-      path_points.SetNthFiducialLabel(1, "target")
+      path_points.SetNthFiducialLabel(0, "target")
+      path_points.SetNthFiducialLabel(1, "anatomy")
+      path_points.SetNthFiducialLabel(2, "insertion")
+    
+    path_points.SetNthFiducialPosition(0, selected_path[0], selected_path[1], selected_path[2])
+    path_points.SetNthFiducialPosition(1, selected_path[0], selected_path[1], selected_path[2]-50)
+    path_points.SetNthFiducialPosition(2, selected_path[0], selected_path[1], selected_path[2]-100)
+
+    self.cmlogic.setInterpolationMethod(1)
+    self.cmlogic.setRing(0)
+    self.cmlogic.setTubeRadius(1.0)
+
+    destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
+    slicer.mrmlScene.AddNode(destNode)
+    self.cmlogic.SourceNode = path_points
+    self.cmlogic.DestinationNode = destNode
+    self.cmlogic.enableAutomaticUpdate(True)
+    self.cmlogic.updateCurve()
+
+  def run(self, inputVolume,angleXWidget, angleYWidget):
+
+    slicer.util.selectModule('ZFrameRegistrationWithROI')
+
+    slicer.util.selectModule('CurveMaker')
+    cmlogic = slicer.modules.CurveMakerWidget.logic
+    target_list = slicer.util.getNode("target")
+
+    try:
+      path_points = slicer.util.getNode('path')
+      
+    except slicer.util.MRMLNodeNotFoundException:
+      path_points = slicer.vtkMRMLMarkupsFiducialNode()
+      path_points.SetName('path')
+      slicer.mrmlScene.AddNode(path_points)
+      target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
+      anatomy_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
+      template_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
+      path_points.SetNthFiducialLabel(0, "target")
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
