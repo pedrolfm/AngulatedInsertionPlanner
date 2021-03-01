@@ -93,6 +93,23 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
 
     #
+    # zframe selector
+    #
+    self.zFrameSelector = slicer.qMRMLNodeComboBox()
+    self.zFrameSelector.nodeTypes = ["vtkMRMLLinearTransformNode"]
+    self.zFrameSelector.selectNodeUponCreation = True
+    self.zFrameSelector.addEnabled = False
+    self.zFrameSelector.removeEnabled = False
+    self.zFrameSelector.noneEnabled = False
+    self.zFrameSelector.showHidden = False
+    self.zFrameSelector.showChildNodeTypes = False
+    self.zFrameSelector.setMRMLScene( slicer.mrmlScene )
+    self.zFrameSelector.setToolTip( "Pick the zframe registration." )
+    parametersFormLayout.addRow("zFrame: ", self.zFrameSelector)
+
+
+
+    #
     # Target Button
     #
     self.selectTarget = qt.QPushButton("Select Target")
@@ -111,6 +128,28 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     parametersFormLayout.addRow(self.reloadTarget)
     parametersFormLayout.addRow(self.targetTable)
+
+    #
+    # segmentation selector
+    #
+    self.segmentationSelector = slicer.qMRMLNodeComboBox()
+    self.segmentationSelector.nodeTypes = ["vtkMRMLLabelMapVolumeNode"]
+    self.segmentationSelector.selectNodeUponCreation = True
+    self.segmentationSelector.addEnabled = False
+    self.segmentationSelector.removeEnabled = False
+    self.segmentationSelector.noneEnabled = False
+    self.segmentationSelector.showHidden = False
+    self.segmentationSelector.showChildNodeTypes = False
+    self.segmentationSelector.setMRMLScene( slicer.mrmlScene )
+    self.segmentationSelector.setToolTip( "Pick the segmentation." )
+
+    self.startSegmentation = qt.QPushButton("Segmentation")
+    self.startSegmentation.toolTip = "Segmentation module"
+    self.startSegmentation.enabled = True
+    parametersFormLayout.addRow(self.startSegmentation,self.segmentationSelector)
+
+
+
 
     #
     # Apply Button
@@ -240,6 +279,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.reloadTarget.connect('clicked(bool)', self.onReloadTarget)
+    self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
+
+    
     
     #self.timer = qt.QTimer()
     
@@ -274,7 +316,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     # Refresh Apply button state
     self.onSelect()
-
 
 
   def onTimeout(self):
@@ -410,10 +451,16 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = self.inputSelector.currentNode()
 
   def onApplyButton(self):
-
     imageThreshold = 0
-    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget)
+    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode())
 
+
+  def onSegmentButton(self):
+
+    slicer.util.selectModule('Editor')
+
+
+  
 
   def onSelectTarget(self):
     try:
@@ -423,11 +470,30 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         targets.GetNthFiducialPosition(row, self.selectedTarget)
         self.angleXWidget.value = 0.0
         self.angleYWidget.value = 0.0
+        nOfRows = self.targetTable.rowCount
+        for r in range(nOfRows):         
+            self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
+            self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
+            self.targetTable.item(r,3).setForeground(qt.QColor(1,1,1))
+            self.targetTable.item(r,1).setBackground(qt.QColor(255,255,255))
+            self.targetTable.item(r,2).setBackground(qt.QColor(255,255,255))
+            self.targetTable.item(r,3).setBackground(qt.QColor(255,255,255)) 
+        self.targetTable.item(row,1).setForeground(qt.QColor(125,1,1))
+        self.targetTable.item(row,2).setForeground(qt.QColor(125,1,1))
+        self.targetTable.item(row,3).setForeground(qt.QColor(125,1,1))
+        self.targetTable.item(row,1).setBackground(qt.QColor(255,180,255))
+        self.targetTable.item(row,2).setBackground(qt.QColor(255,180,255))
+        self.targetTable.item(row,3).setBackground(qt.QColor(255,180,255))       
         print(self.selectedTarget)
         
     except:
       print("No target selected")
-    
+      print(self.targetTable.rowCount)
+      
+
+
+
+
 
 #
 # PathPlannerLogic
@@ -641,9 +707,32 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     slicer.cli.run(modelMakerCLI, None, modelMakerParameters, True)
 
+  def GetCenter(self, inputVolume2):
+    modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
+    slicer.mrmlScene.AddNode(modelHierarchyNode)
+    self.createModels(inputVolume2, modelHierarchyNode)
+    nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
+    if (nOfModels > 1):
+      slicer.util.errorDisplay("More than one segmented ablation volume")
+      return
+    chnode = modelHierarchyNode.GetNthChildNode(0)
+    mnode = chnode.GetAssociatedNode()
+    objectPoly = mnode.GetPolyData()
 
-  def path(self,angleXWidget, angleYWidget,selected_path):
-        
+    centerOfmass = vtk.vtkCenterOfMass()
+    centerOfmass.SetInputData(objectPoly)
+    centerOfmass.SetUseScalarsAsWeights(False)
+    centerOfmass.Update()
+    #self.Center = centerOfmass.GetCenter()
+    print(centerOfmass.GetCenter())
+    return centerOfmass.GetCenter()
+
+
+  def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode):
+
+    zdist = 100
+    center = self.GetCenter(labelMapNode)
+    
  #   slicer.util.selectModule('CurveMaker')
     self.cmlogic = slicer.modules.CurveMakerWidget.logic
     try:
@@ -659,21 +748,38 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(0, "target")
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
-    
-    path_points.SetNthFiducialPosition(0, selected_path[0], selected_path[1], selected_path[2])
-    path_points.SetNthFiducialPosition(1, selected_path[0], selected_path[1], selected_path[2]-50)
-    path_points.SetNthFiducialPosition(2, selected_path[0], selected_path[1], selected_path[2]-100)
+
+    _diff_R = -(zdist*(center[0]-selected_target[0]))/(center[2]-selected_target[2])
+    _diff_A = -(zdist*(center[1]-selected_target[1]))/(center[2]-selected_target[2])
+
+    path_points.SetNthFiducialPosition(0, selected_target[0], selected_target[1], selected_target[2])
+    path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
+    path_points.SetNthFiducialPosition(2, selected_target[0]+_diff_R, selected_target[1]+_diff_A, selected_target[2]-zdist)
 
     self.cmlogic.setInterpolationMethod(1)
     self.cmlogic.setRing(0)
     self.cmlogic.setTubeRadius(1.0)
 
-    destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
-    slicer.mrmlScene.AddNode(destNode)
+
+    try:
+      destNode = slicer.util.getNode('pathModel')
+            
+    except slicer.util.MRMLNodeNotFoundException:
+      destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
+      destNode.SetName('pathModel')
+      print(destNode.GetClassName())
+      slicer.mrmlScene.AddNode(destNode)
+
+
     self.cmlogic.SourceNode = path_points
     self.cmlogic.DestinationNode = destNode
     self.cmlogic.enableAutomaticUpdate(True)
     self.cmlogic.updateCurve()
+
+    angleXWidget.value = -((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
+    angleYWidget.value = -((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
+
+
 
   def run(self, inputVolume,angleXWidget, angleYWidget):
 
