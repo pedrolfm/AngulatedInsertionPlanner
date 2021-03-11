@@ -338,7 +338,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         except:
           print("No status received yet")
     except:
-      print("timer4")
       self.systemStatus.setText("No connection")
       self.targetStatus.setText("No connection")
       
@@ -452,7 +451,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onApplyButton(self):
     imageThreshold = 0
-    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode())
+    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
 
 
   def onSegmentButton(self):
@@ -727,11 +726,52 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     print(centerOfmass.GetCenter())
     return centerOfmass.GetCenter()
 
+  def transformZframe(self,zFrame):
+    _rotation = vtk.vtkMatrix4x4()
+    _translation = vtk.vtkMatrix4x4()
 
-  def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode):
+    _translation.Identity()
+    _translation.SetElement(1,3,107.0)
+    _translation.SetElement(2,3,-114.0)
 
-    zdist = 100
+    _rotation.Identity()
+    _rotation.SetElement(1,1,0.0)
+    _rotation.SetElement(1,2,1.0)
+    _rotation.SetElement(2,1,-1.0)
+    _rotation.SetElement(2,2,0.0)
+
+    _temp = vtk.vtkMatrix4x4()
+    rotatedZframe = vtk.vtkMatrix4x4()
+    
+    vtk.vtkMatrix4x4.Multiply4x4(zFrame, _rotation, _temp)
+    vtk.vtkMatrix4x4.Multiply4x4(_translation, _temp, rotatedZframe)
+
+    return rotatedZframe
+
+  def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode,zFrameTransform):
+
+    mtx = vtk.vtkMatrix4x4()
+    mtx_input = vtk.vtkMatrix4x4()
+    zFrameTransform.GetMatrixTransformToWorld(mtx_input)
+    mtx = self.transformZframe(mtx_input)
+    
+
+
+    mtx.Invert()
     center = self.GetCenter(labelMapNode)
+    
+    _input = [selected_target[0], selected_target[1], selected_target[2], 1]
+    target_z = [0.0, 0.0, 0.0, 1]
+    mtx.MultiplyPoint(_input,target_z)
+
+    _input = [center[0], center[1], center[2], 1]
+    center_z = [0.0, 0.0, 0.0, 1]
+    mtx.MultiplyPoint(_input,center_z)
+
+
+    zdist = target_z[2] #add 100, but we need to remove that.
+
+    
     
  #   slicer.util.selectModule('CurveMaker')
     self.cmlogic = slicer.modules.CurveMakerWidget.logic
@@ -749,12 +789,29 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
-    _diff_R = -(zdist*(center[0]-selected_target[0]))/(center[2]-selected_target[2])
-    _diff_A = -(zdist*(center[1]-selected_target[1]))/(center[2]-selected_target[2])
+#    _diff_R = -(zdist*(center[0]-selected_target[0]))/(center[2]-selected_target[2])
+#    _diff_A = -(zdist*(center[1]-selected_target[1]))/(center[2]-selected_target[2])
+
+    _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
+    _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
+
+    entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
+
+
+
+    if self.checkKinematics(entry_z,center_z,target_z,zdist):
+      center_z = self.findNewCenter(entry_z,center_z,target_z,zdist)
+      _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
+      _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
+      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]     
+
+    entry = [0.0, 0.0, 0.0, 1]
+    mtx.Invert()
+    mtx.MultiplyPoint(entry_z,entry)
 
     path_points.SetNthFiducialPosition(0, selected_target[0], selected_target[1], selected_target[2])
     path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
-    path_points.SetNthFiducialPosition(2, selected_target[0]+_diff_R, selected_target[1]+_diff_A, selected_target[2]-zdist)
+    path_points.SetNthFiducialPosition(2, entry[0], entry[1], entry[2])
 
     self.cmlogic.setInterpolationMethod(1)
     self.cmlogic.setRing(0)
@@ -767,7 +824,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     except slicer.util.MRMLNodeNotFoundException:
       destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
       destNode.SetName('pathModel')
-      print(destNode.GetClassName())
       slicer.mrmlScene.AddNode(destNode)
 
 
@@ -775,11 +831,48 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.cmlogic.DestinationNode = destNode
     self.cmlogic.enableAutomaticUpdate(True)
     self.cmlogic.updateCurve()
+    print("===")
+    print(center)
+    print(selected_target)
+    print("==z==")
+    print(entry_z)
+    print(center_z)
+    print(target_z)
+    angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
+    angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
-    angleXWidget.value = -((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
-    angleYWidget.value = -((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
+  def findNewCenter(self,entry,center,target,zdist):
+    angle1 = np.arcsin((entry[0]-target[0])/zdist)
+    angle2 = np.arcsin((entry[1]-target[1])/zdist)
+    if angle1 > 0.35:
+      angle1 = 0.35
+    if angle1 < -0.35:
+      angle1 = -0.35
+    if angle2 > 0.35:
+      angle2 = 0.35
+    if angle2 < -0.35:
+      angle2 = -0.35
+    centerNew = [0.0, 0.0, 0.0, 1]
+    centerNew[0] = target[0]+np.sin(angle1)*(target[2]-center[2])
+    centerNew[1] = target[1]+np.sin(angle2)*(target[2]-center[2])
+    centerNew[2] = center[2]
+    return centerNew
 
+  def checkKinematics(self,entry,center,target,zdist):
+    _test1 = np.arcsin((entry[0]-target[0])/zdist)
+    _test2 = np.arcsin((entry[1]-target[1])/zdist)
+    print(zdist)
+    print(_test1)
+    print((entry[1]-target[1])/zdist)
+    if _test1<-0.35 or _test1>0.35:
+      print("angle limit reached")
+      return True
+    
+    print("angle Ok")
+    return False
+
+    
 
   def run(self, inputVolume,angleXWidget, angleYWidget):
 
