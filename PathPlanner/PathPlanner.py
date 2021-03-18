@@ -11,6 +11,9 @@ import time
 # PathPlanner
 #
 
+#translation limits of Smart Template
+LIMITS = [-20,20,-20,40]
+
 class PathPlanner(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
@@ -296,21 +299,40 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     # Status Area
     #
     statusCollapsibleButton = ctk.ctkCollapsibleButton()
-    statusCollapsibleButton.text = "Smart Template angles"
-    self.layout.addWidget(statusCollapsibleButton)
+    statusCollapsibleButton.text = "Smart Template Movements"
+    statusFormLayout = qt.QGridLayout(statusCollapsibleButton)
+#    statusFormLayout = qt.QFormLayout(statusCollapsibleButton)
 
-    statusFormLayout = qt.QFormLayout(statusCollapsibleButton)
-
-    self.systemStatus = qt.QLabel()
-    self.systemStatus.setText("No zFrame ; No connection ")
-    self.systemStatus.setStyleSheet("background-color: white;border: 1px solid black;")
-    self.targetStatus = qt.QLabel()
-    self.targetStatus.setText("No target ; No angle ")
-    self.targetStatus.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.USLabel0 = qt.QLabel()
+    self.USLabel0.setText("US Motor:")
+    self.USLabel0.setStyleSheet("background-color: white;border: 1px solid black;")
     
-    statusFormLayout.addRow("Target and angle:", self.systemStatus)
-    statusFormLayout.addRow("zFrame and connection:", self.targetStatus)
+    self.USLabel1 = qt.QLabel()
+    self.USLabel1.setText(" - ")
+    self.USLabel1.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.USLabel2 = qt.QLabel()
+    self.USLabel2.setText(" - ")
+    self.USLabel2.setStyleSheet("background-color: white;border: 1px solid black;")
 
+    self.PELabel0 = qt.QLabel()
+    self.PELabel0.setText("PE Motor:")
+    self.PELabel0.setStyleSheet("background-color: white;border: 1px solid black;")
+    
+    self.PELabel1 = qt.QLabel()
+    self.PELabel1.setText(" - ")
+    self.PELabel1.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.PELabel2 = qt.QLabel()
+    self.PELabel2.setText(" - ")
+    self.PELabel2.setStyleSheet("background-color: white;border: 1px solid black;")
+
+    self.layout.addWidget(statusCollapsibleButton)
+    statusFormLayout.addWidget(self.PELabel0,0,1)
+    statusFormLayout.addWidget(self.PELabel1,0,2)
+    statusFormLayout.addWidget(self.PELabel2,0,3)
+    statusFormLayout.addWidget(self.USLabel0,1,1)
+    statusFormLayout.addWidget(self.USLabel1,1,3)
+    statusFormLayout.addWidget(self.USLabel2,1,2)
+   
     # Add vertical spacer
     self.layout.addStretch(1)
 
@@ -344,7 +366,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     qt.QTimer.singleShot(2000, self.onTimeout)
 
   def onzFrameButton(self):
-    if self.logic.sendZFrame():
+    if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
+      self.zFrameStatus.setText("ZFrame sent")
+      self.zFrameStatus.setStyleSheet("background-color: green;border: 1px solid black;")
       print('- zFrame sent -\n')
     else:
       print('- zFrame NOT sent -\n')
@@ -457,10 +481,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onSegmentButton(self):
 
     slicer.util.selectModule('Editor')
-
-
   
-
   def onSelectTarget(self):
     try:
         self.selectedTarget = [0.0,0.0,0.0];
@@ -480,9 +501,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.targetTable.item(row,1).setForeground(qt.QColor(125,1,1))
         self.targetTable.item(row,2).setForeground(qt.QColor(125,1,1))
         self.targetTable.item(row,3).setForeground(qt.QColor(125,1,1))
-        self.targetTable.item(row,1).setBackground(qt.QColor(255,180,255))
-        self.targetTable.item(row,2).setBackground(qt.QColor(255,180,255))
-        self.targetTable.item(row,3).setBackground(qt.QColor(255,180,255))       
+        self.targetTable.item(row,1).setBackground(qt.QColor(255,100,100))
+        self.targetTable.item(row,2).setBackground(qt.QColor(255,100,100))
+        self.targetTable.item(row,3).setBackground(qt.QColor(255,100,100))       
         print(self.selectedTarget)
         
     except:
@@ -515,8 +536,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     _point3[1] = _point1[1] + distance_to_zFrame * np.sin(_angleY)
     _point3[2] = _point1[2] - distance_to_zFrame
 
-    _point2[0] = _point1[0] +distance_to_zFrame/2.0 * np.sin(_angleX)
-    _point2[1] = _point1[1] +distance_to_zFrame/2.0 * np.sin(_angleY)
+    _point2[0] = _point1[0] + distance_to_zFrame/2.0 * np.sin(_angleX)
+    _point2[1] = _point1[1] + distance_to_zFrame/2.0 * np.sin(_angleY)
     _point2[2] = _point1[2] - distance_to_zFrame/2.0
 
     path_points.SetNthFiducialPosition(1, _point2[0], _point2[1], _point2[2])
@@ -640,32 +661,22 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
 
 
-  def sendZFrame(self):
-    try:
-      try:
-        self.zFrameTransformation = slicer.util.getNode('zFrameTransformation')
-      except:
-        self.zFrameTransformation = slicer.mrmlScene.CopyNode(slicer.util.getNode('*ZFrameT*'))
-        self.zFrameTransformation.SetName("zFrameTransformation")
-      print(' - Z frame there. -')
+  def sendZFrame(self,zFrame):
+
+    if zFrame:
       if self.cnode.GetState() == 2:
-        self.cnode.RegisterOutgoingMRMLNode(self.zFrameTransformation)
-        self.cnode.PushNode(self.zFrameTransformation)
+        self.cnode.RegisterOutgoingMRMLNode(zFrame)
+        self.cnode.PushNode(zFrame)
         print(self.cnode.GetState())
         time.sleep(0.1)
-        self.cnode.UnregisterOutgoingMRMLNode(self.zFrameTransformation)    
+        self.cnode.UnregisterOutgoingMRMLNode(zFrame) 
         return True
       else:
-        print('- Connection not stablished yet -')
+        print('- Check openIGTLink connection-')
         return False
-    except slicer.util.MRMLNodeNotFoundException:
+    else:
       print('- There is no zFrame on Slicer scene -')
-      return False
-    except:
-      e = sys.exc_info()
-      print(e)
-      print('- Check openIGTLink connection-')
-      return False
+      return False    
 
   def openConnection(self):
 
@@ -797,17 +808,41 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
 
+    count = 0
+    print(entry_z)
+    print(center_z)
 
-
-    if self.checkKinematics(entry_z,center_z,target_z,zdist):
-      center_z = self.findNewCenter(entry_z,center_z,target_z,zdist)
+    check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
+    if check == 1 or check == 2:
+      print(check)
+      center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
       _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
       _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
-      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]     
+      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
+        
+    check = self.checkKinematics(entry_z,center_z,target_z,zdist)
+    print("after")
+    print(entry_z)
+    print(center_z)
+
+#    while check == 1 or check == 2 or count < 10:
+#      check = self.checkKinematics(entry_z,center_z,target_z,zdist)
+#      print(check)
+#      if check == 1:
+#        center_z = self.findNewCenter(entry_z,center_z,target_z,zdist)
+#        _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
+#        _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
+#        entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
+#      count = count + 1
+
+    #add here the code to fix the translation limit.
+
 
     entry = [0.0, 0.0, 0.0, 1]
+    center = [0.0, 0.0, 0.0, 1]
     mtx.Invert()
     mtx.MultiplyPoint(entry_z,entry)
+    mtx.MultiplyPoint(center_z,center)
 
     path_points.SetNthFiducialPosition(0, selected_target[0], selected_target[1], selected_target[2])
     path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
@@ -842,17 +877,49 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
 
-  def findNewCenter(self,entry,center,target,zdist):
-    angle1 = np.arcsin((entry[0]-target[0])/zdist)
-    angle2 = np.arcsin((entry[1]-target[1])/zdist)
-    if angle1 > 0.35:
-      angle1 = 0.35
-    if angle1 < -0.35:
-      angle1 = -0.35
-    if angle2 > 0.35:
-      angle2 = 0.35
-    if angle2 < -0.35:
-      angle2 = -0.35
+  def findNewCenter(self,entry,center,target,zdist,case):
+    if case == 1:
+      if entry[0] < LIMITS[0]:
+        entry[0] = LIMITS[0]
+      if entry[0] > LIMITS[1]:
+        entry[0] = LIMITS[1]
+      if entry[1] < LIMITS[2]:
+        entry[1] = LIMITS[2]
+      if entry[1] > LIMITS[3]:
+        entry[1] = LIMITS[3]
+      _angle1 = (entry[0]-target[0])/zdist
+      _angle2 = (entry[1]-target[1])/zdist
+      if _angle1 < -1.0:
+        _angle1 = -1.0
+      if _angle1 > 1.0:
+        _angle1 = 1.0
+      if _angle2 < -1.0:
+        _angle2 = -1.0
+      if _angle2 > 1.0:
+        _angle2 = 1.0
+      angle1 = np.arcsin(_angle1)
+      angle2 = np.arcsin(_angle2)
+    else:
+      _angle1 = (entry[0]-target[0])/zdist
+      _angle2 = (entry[1]-target[1])/zdist
+      if _angle1 < -1.0:
+        _angle1 = -1.0
+      if _angle1 > 1.0:
+        _angle1 = 1.0
+      if _angle2 < -1.0:
+        _angle2 = -1.0
+      if _angle2 > 1.0:
+        _angle2 = 1.0
+      angle1 = np.arcsin(_angle1)
+      angle2 = np.arcsin(_angle2)
+      if angle1 > 0.35:
+        angle1 = 0.35
+      if angle1 < -0.35:
+        angle1 = -0.35
+      if angle2 > 0.35:
+        angle2 = 0.35
+      if angle2 < -0.35:
+        angle2 = -0.35
     centerNew = [0.0, 0.0, 0.0, 1]
     centerNew[0] = target[0]+np.sin(angle1)*(target[2]-center[2])
     centerNew[1] = target[1]+np.sin(angle2)*(target[2]-center[2])
@@ -862,15 +929,15 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def checkKinematics(self,entry,center,target,zdist):
     _test1 = np.arcsin((entry[0]-target[0])/zdist)
     _test2 = np.arcsin((entry[1]-target[1])/zdist)
-    print(zdist)
-    print(_test1)
-    print((entry[1]-target[1])/zdist)
     if _test1<-0.35 or _test1>0.35:
       print("angle limit reached")
-      return True
+      return 1
+    if entry[0]<LIMITS[0] or entry[0]>LIMITS[1] or entry[1]<LIMITS[2] or entry[1]>LIMITS[3]:
+      print("translation limit reached")
+      return 2
     
     print("angle Ok")
-    return False
+    return 0
 
     
 
