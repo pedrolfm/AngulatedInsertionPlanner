@@ -343,6 +343,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onTimeout(self):
     try:
       self.igtl = slicer.util.getNode('OIGTL*')
+      print(self.igtl.GetState())
       if self.igtl.GetState() == 0:
         self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - OFF")
@@ -355,8 +356,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           self.status1 = slicer.util.getNode('statusTarget')
           self.status2 = slicer.util.getNode('statusZ-Frame')
-          self.targetStatus.setText(self.status2.GetText())
-          self.systemStatus.setText(self.status1.GetText())
+          self.targetStatus.setText(self.status1.GetText())
         except:
           print("No status received yet")
     except:
@@ -429,16 +429,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       self.targetTransformation = slicer.vtkMRMLLinearTransformNode()
       self.targetTransformation.SetName("targetTransformation")
       slicer.mrmlScene.AddNode(self.targetTransformation)
-    try:
-      target_list = slicer.util.getNode("target")
-      ras_target = [0.0,0.0,0.0]
-      target_list.GetNthFiducialPosition(0, ras_target)
-      self.sendMoveButton.enabled = True
-    except:
-      print('- No Target selected -\n')
-      return
+
+    self.sendMoveButton.enabled = True
     
-    if self.logic.sendTarget(self.targetTransformation,ras_target):
+    if self.logic.sendTarget(self.targetTransformation,self.selectedTarget):
       print('- Target sent -\n')
     else:
       print('- Target NOT sent -\n')
@@ -664,6 +658,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def sendZFrame(self,zFrame):
 
     if zFrame:
+      zFrame.SetName("zFrameTransformation")
       if self.cnode.GetState() == 2:
         self.cnode.RegisterOutgoingMRMLNode(zFrame)
         self.cnode.PushNode(zFrame)
@@ -722,6 +717,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     slicer.mrmlScene.AddNode(modelHierarchyNode)
     self.createModels(inputVolume2, modelHierarchyNode)
     nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
+    print(modelHierarchyNode)
     if (nOfModels > 1):
       slicer.util.errorDisplay("More than one segmented ablation volume")
       return
