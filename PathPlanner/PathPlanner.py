@@ -193,7 +193,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
     self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
-   
+    self.zFrameSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onDefineZFrame)
 
     #
     # Connection area
@@ -271,8 +271,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     ConnectionFormLayout.addWidget(self.angleStatus,2,3)
     ConnectionFormLayout.addWidget(self.sendInitButton,3,1)
 
-
-
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
     self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
@@ -283,8 +281,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.reloadTarget.connect('clicked(bool)', self.onReloadTarget)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
-
-    
     
     #self.timer = qt.QTimer()
     
@@ -332,7 +328,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     statusFormLayout.addWidget(self.USLabel0,1,1)
     statusFormLayout.addWidget(self.USLabel1,1,3)
     statusFormLayout.addWidget(self.USLabel2,1,2)
-   
+
+
+    self.logic.loadzFrameModel()
+
     # Add vertical spacer
     self.layout.addStretch(1)
 
@@ -463,6 +462,8 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value)
     
 
+  def onDefineZFrame(self):
+    self.logic.positionTemplate(self.zFrameSelector.currentNode())
 
   def onSelect(self):
     self.applyButton.enabled = self.inputSelector.currentNode()
@@ -506,14 +507,28 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       
 
 
-
-
-
 #
 # PathPlannerLogic
 #
 
 class PathPlannerLogic(ScriptedLoadableModuleLogic):
+
+
+
+  def positionTemplate(self,zFrame):
+    self.zFrameModelNode.SetAndObserveTransformNodeID(zFrame.getOutputTransformation().GetID())
+
+  def loadzFrameModel(self):
+
+    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/dataForTesting/Workspace_1_tissue.vtk', returnNode=True)
+    #slicer.mrmlScene.AddNode(self.zFrameModelNode)
+    #modelDisplayNode = self.zFrameModelNode.GetDisplayNode()
+    #modelDisplayNode.SetColor(1, 1, 0)
+    self.zFrameModelNode.SetDisplayVisibility(False)
+
+
+  def setzFrameVisibility(self,param):
+    self.zFrameModelNode.SetDisplayVisibility(param)    
 
 
   def updatePoints(self,path_points,distance_to_zFrame,angleX,angleY):
