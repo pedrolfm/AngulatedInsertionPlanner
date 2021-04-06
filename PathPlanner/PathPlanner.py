@@ -75,10 +75,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
  #   parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
 
 
-    self.reloadTarget = qt.QPushButton("reload")
-    self.reloadTarget.toolTip = "Reload Target"
-    self.reloadTarget.enabled = True
-
     #
     # target selector
     #
@@ -129,7 +125,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.targetTable.setColumnCount(4)
     self.targetTable.setHorizontalHeaderLabels(['Name', 'R', 'A', 'S'])
 
-    parametersFormLayout.addRow(self.reloadTarget)
     parametersFormLayout.addRow(self.targetTable)
 
     #
@@ -152,15 +147,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     parametersFormLayout.addRow(self.startSegmentation,self.segmentationSelector)
 
 
-
-
-    #
-    # Apply Button
-    #
-    self.applyButton = qt.QPushButton("Apply")
-    self.applyButton.toolTip = "Run the algorithm."
-    self.applyButton.enabled = False
-    parametersFormLayout.addRow(self.applyButton,self.selectTarget)
+    parametersFormLayout.addRow(self.selectTarget)
 
     #
     # Angulation Area
@@ -191,9 +178,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
     self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
-    self.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     self.zFrameSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onDefineZFrame)
+    self.zFrameSelector.connect("nodeActivated(vtkMRMLNode*)", self.onDefineZFrame)
+    self.targetSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onReloadTarget)
+    self.targetSelector.connect("nodeActivated(vtkMRMLNode*)", self.onReloadTarget)
 
     #
     # Connection area
@@ -279,7 +268,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
-    self.reloadTarget.connect('clicked(bool)', self.onReloadTarget)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
     
     #self.timer = qt.QTimer()
@@ -338,11 +326,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     # Refresh Apply button state
     self.onSelect()
 
-
   def onTimeout(self):
     try:
       self.igtl = slicer.util.getNode('OIGTL*')
-      print(self.igtl.GetState())
       if self.igtl.GetState() == 0:
         self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - OFF")
@@ -402,7 +388,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           self.targetTable.setItem(n,2, qt.QTableWidgetItem(str(ras_target[1])))
           self.targetTable.setItem(n,3, qt.QTableWidgetItem(str(ras_target[2])))
           self.targetTable.setItem(n,0, qt.QTableWidgetItem(targets.GetNthFiducialLabel(n)))
-          print(ras_target)
 
     except:
       print('- No target list? -\n')
@@ -468,13 +453,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onSelect(self):
     self.applyButton.enabled = self.inputSelector.currentNode()
 
-  def onApplyButton(self):
-    imageThreshold = 0
-    self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
-
-
   def onSegmentButton(self):
-
     slicer.util.selectModule('Editor')
   
   def onSelectTarget(self):
@@ -486,6 +465,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.angleXWidget.value = 0.0
         self.angleYWidget.value = 0.0
         nOfRows = self.targetTable.rowCount
+        self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
         for r in range(nOfRows):         
             self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
@@ -498,21 +478,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.targetTable.item(row,3).setForeground(qt.QColor(125,1,1))
         self.targetTable.item(row,1).setBackground(qt.QColor(255,100,100))
         self.targetTable.item(row,2).setBackground(qt.QColor(255,100,100))
-        self.targetTable.item(row,3).setBackground(qt.QColor(255,100,100))       
-        print(self.selectedTarget)
-        
+        self.targetTable.item(row,3).setBackground(qt.QColor(255,100,100))
     except:
-      print("No target selected")
-      print(self.targetTable.rowCount)
+        slicer.util.errorDisplay("No target selected")
       
-
-
 #
 # PathPlannerLogic
 #
-
 class PathPlannerLogic(ScriptedLoadableModuleLogic):
-
 
 
   def positionTemplate(self,zFrame):
@@ -624,7 +597,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       vTransform.RotateX(X)
       vTransform.RotateY(Y)  
       angleTransformation.SetAndObserveMatrixTransformToParent(vTransform.GetMatrix())
-      print(angleTransformation)
       
       if self.cnode.GetState() == 2:
         self.cnode.RegisterOutgoingMRMLNode(angleTransformation)
@@ -636,8 +608,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
         print(' Connection not stablished yet -')
         return False
     except:
-      e = sys.exc_info()
-      print(e)
+ #     e = sys.exc_info()
       print('- Check openIGTLink connection-')
       return False
 
@@ -677,7 +648,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       if self.cnode.GetState() == 2:
         self.cnode.RegisterOutgoingMRMLNode(zFrame)
         self.cnode.PushNode(zFrame)
-        print(self.cnode.GetState())
         time.sleep(0.1)
         self.cnode.UnregisterOutgoingMRMLNode(zFrame) 
         return True
@@ -732,7 +702,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     slicer.mrmlScene.AddNode(modelHierarchyNode)
     self.createModels(inputVolume2, modelHierarchyNode)
     nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
-    print(modelHierarchyNode)
     if (nOfModels > 1):
       slicer.util.errorDisplay("More than one segmented ablation volume")
       return
@@ -745,7 +714,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     centerOfmass.SetUseScalarsAsWeights(False)
     centerOfmass.Update()
     #self.Center = centerOfmass.GetCenter()
-    print(centerOfmass.GetCenter())
     return centerOfmass.GetCenter()
 
   def transformZframe(self,zFrame):
@@ -820,21 +788,13 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
 
     count = 0
-    print(entry_z)
-    print(center_z)
-
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
     if check == 1 or check == 2:
-      print(check)
       center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
       _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
       _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
-      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
-        
+      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
     check = self.checkKinematics(entry_z,center_z,target_z,zdist)
-    print("after")
-    print(entry_z)
-    print(center_z)
 
 #    while check == 1 or check == 2 or count < 10:
 #      check = self.checkKinematics(entry_z,center_z,target_z,zdist)
@@ -846,7 +806,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 #        entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
 #      count = count + 1
 
-    #add here the code to fix the translation limit.
+    #TODO: add here the code to fix the translation limit.
 
 
     entry = [0.0, 0.0, 0.0, 1]
@@ -877,13 +837,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.cmlogic.DestinationNode = destNode
     self.cmlogic.enableAutomaticUpdate(True)
     self.cmlogic.updateCurve()
-    print("===")
-    print(center)
-    print(selected_target)
-    print("==z==")
-    print(entry_z)
-    print(center_z)
-    print(target_z)
     angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
