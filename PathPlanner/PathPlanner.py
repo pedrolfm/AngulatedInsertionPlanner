@@ -698,9 +698,14 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     slicer.cli.run(modelMakerCLI, None, modelMakerParameters, True)
 
   def GetCenter(self, inputVolume2):
-    modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
-    slicer.mrmlScene.AddNode(modelHierarchyNode)
-    self.createModels(inputVolume2, modelHierarchyNode)
+
+    try:
+      modelHierarchyNode = slicer.util.getNode('ModelHierarchy')
+    except:
+      modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
+      slicer.mrmlScene.AddNode(modelHierarchyNode)
+      self.createModels(inputVolume2, modelHierarchyNode)
+
     nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
     if (nOfModels > 1):
       slicer.util.errorDisplay("More than one segmented ablation volume")
@@ -744,8 +749,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     mtx_input = vtk.vtkMatrix4x4()
     zFrameTransform.GetMatrixTransformToWorld(mtx_input)
     mtx = self.transformZframe(mtx_input)
-    
-
 
     mtx.Invert()
     center = self.GetCenter(labelMapNode)
@@ -757,12 +760,9 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     _input = [center[0], center[1], center[2], 1]
     center_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,center_z)
-
-
+    
     zdist = target_z[2] #add 100, but we need to remove that.
 
-    
-    
  #   slicer.util.selectModule('CurveMaker')
     self.cmlogic = slicer.modules.CurveMakerWidget.logic
     try:
@@ -808,7 +808,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     #TODO: add here the code to fix the translation limit.
 
-
     entry = [0.0, 0.0, 0.0, 1]
     center = [0.0, 0.0, 0.0, 1]
     mtx.Invert()
@@ -822,7 +821,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.cmlogic.setInterpolationMethod(1)
     self.cmlogic.setRing(0)
     self.cmlogic.setTubeRadius(1.0)
-
 
     try:
       destNode = slicer.util.getNode('pathModel')
@@ -902,64 +900,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     
     print("angle Ok")
     return 0
-
-    
-
-  def run(self, inputVolume,angleXWidget, angleYWidget):
-
-    slicer.util.selectModule('ZFrameRegistrationWithROI')
-
-    slicer.util.selectModule('CurveMaker')
-    cmlogic = slicer.modules.CurveMakerWidget.logic
-    target_list = slicer.util.getNode("target")
-
-    try:
-      path_points = slicer.util.getNode('path')
-      
-    except slicer.util.MRMLNodeNotFoundException:
-      path_points = slicer.vtkMRMLMarkupsFiducialNode()
-      path_points.SetName('path')
-      slicer.mrmlScene.AddNode(path_points)
-      target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
-      anatomy_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
-      template_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
-      path_points.SetNthFiducialLabel(0, "target")
-      path_points.SetNthFiducialLabel(1, "anatomy")
-      path_points.SetNthFiducialLabel(2, "insertion")
-
-    ras_target = [0.0,0.0,0.0]
-    target_list.GetNthFiducialPosition(0, ras_target)
-
-    path_points.SetNthFiducialPosition(0, ras_target[0], ras_target[1], ras_target[2])
-    path_points.SetNthFiducialPosition(1, center[0],center[1],center[2])
-
-    template_position = [0,0,0]
-    delta = [center[0]-ras_target[0],center[1]-ras_target[1],center[2]-ras_target[2]]
-    template_position[0] = ras_target[0] + delta[0] * 2
-    template_position[1] = ras_target[1] + delta[1] * 2
-    template_position[2] = ras_target[2] + delta[2] * 2
-    path_points.SetNthFiducialPosition(2, template_position[0], template_position[1], template_position[2])
-
-    angle1 = (np.arctan(delta[0]/delta[2]))*180/3.14
-    angle2 = (np.arctan(delta[1] / delta[2])) * 180 / 3.14
-    angleXWidget.value = angle1
-    angleYWidget.value = angle2
-
-    cmlogic.setInterpolationMethod(1)
-    cmlogic.setRing(0)
-    cmlogic.setTubeRadius(1.0)
-
-    #PArei aqui, instalar o curve maker
-
-    destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
-    slicer.mrmlScene.AddNode(destNode)
-    cmlogic.SourceNode = path_points
-    cmlogic.DestinationNode = destNode
-    cmlogic.enableAutomaticUpdate(True)
-    cmlogic.updateCurve()
-
-
-    return True
+ 
 
 
 class PathPlannerTest(ScriptedLoadableModuleTest):
