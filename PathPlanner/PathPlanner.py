@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import sys
 import time
+
 #
 # PathPlanner
 #
@@ -24,16 +25,14 @@ class PathPlanner(ScriptedLoadableModule):
     self.parent.title = "PathPlanner" # TODO make this more human readable by adding spaces
     self.parent.categories = ["Examples"]
     self.parent.dependencies = []
-    self.parent.contributors = ["John Doe (AnyWare Corp.)"] # replace with "Firstname Lastname (Organization)"
+    self.parent.contributors = ["Pedro Moreira (BWH)"] # replace with "Firstname Lastname (Organization)"
     self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
-It performs a simple thresholding on the input volume and optionally captures a screenshot.
+
 """
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = """
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc.
-and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
-""" # replace with organization, grant and thanks.
+.
+""" 
 
 #
 # PathPlannerWidget
@@ -74,6 +73,8 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.setToolTip( "Pick the prostate image to select the target." )
  #   parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
 
+    mainWindow = slicer.util.mainWindow()
+    mainWindow.moduleSelector().selectModule('CurveMaker')
 
     #
     # target selector
@@ -106,8 +107,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.zFrameSelector.setToolTip( "Pick the zframe registration." )
     parametersFormLayout.addRow("zFrame: ", self.zFrameSelector)
 
-
-
     #
     # Target Button
     #
@@ -119,7 +118,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     #
     # Add target table
     #
-    
     self.targetTable = qt.QTableWidget()
     self.targetTable.setRowCount(1)
     self.targetTable.setColumnCount(4)
@@ -388,7 +386,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           self.targetTable.setItem(n,2, qt.QTableWidgetItem(str(ras_target[1])))
           self.targetTable.setItem(n,3, qt.QTableWidgetItem(str(ras_target[2])))
           self.targetTable.setItem(n,0, qt.QTableWidgetItem(targets.GetNthFiducialLabel(n)))
-
     except:
       print('- No target list? -\n')
 
@@ -432,7 +429,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       
       self.sendInitButton.enabled = True
       self.sendReconnectButton.enabled = True
-
 
   def cleanup(self):
     pass
@@ -563,8 +559,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     else:
       print(' Connection not stablished, check OpenIGTLink -')
       return False
-
-
 
 
   def sendReconnect(self):
@@ -764,7 +758,13 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     zdist = target_z[2] #add 100, but we need to remove that.
 
  #   slicer.util.selectModule('CurveMaker')
-    self.cmlogic = slicer.modules.CurveMakerWidget.logic
+    try:
+      print("here 1") 
+      self.cmlogic = slicer.modules.CurveMakerWidget.logic
+    except:
+      slicer.util.errorDisplay("No CurveMaker installed")
+      return
+
     try:
       path_points = slicer.util.getNode('path')
             
@@ -779,8 +779,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
-#    _diff_R = -(zdist*(center[0]-selected_target[0]))/(center[2]-selected_target[2])
-#    _diff_A = -(zdist*(center[1]-selected_target[1]))/(center[2]-selected_target[2])
 
     _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
     _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
@@ -796,16 +794,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
     check = self.checkKinematics(entry_z,center_z,target_z,zdist)
 
-#    while check == 1 or check == 2 or count < 10:
-#      check = self.checkKinematics(entry_z,center_z,target_z,zdist)
-#      print(check)
-#      if check == 1:
-#        center_z = self.findNewCenter(entry_z,center_z,target_z,zdist)
-#        _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
-#        _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
-#        entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]
-#      count = count + 1
-
+    print("here 1")
     #TODO: add here the code to fix the translation limit.
 
     entry = [0.0, 0.0, 0.0, 1]
@@ -837,6 +826,9 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.cmlogic.updateCurve()
     angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
+
+    red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
+    red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
 
 
   def findNewCenter(self,entry,center,target,zdist,case):
