@@ -337,14 +337,19 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - ON")
         try:
-          self.status1 = slicer.util.getNode('statusTarget')
-          self.status2 = slicer.util.getNode('statusZ-Frame')
-          self.targetStatus.setText(self.status1.GetText())
+          self.US1 = slicer.util.getNode('US1')
+          self.US2 = slicer.util.getNode('US2')
+          self.USLabel1.setText(self.US1.GetText())
+          self.USLabel2.setText(self.US2.GetText())
+          self.PE1 = slicer.util.getNode('PE1')
+          self.PE2 = slicer.util.getNode('PE2')
+          self.PELabel1.setText(self.PE1.GetText())
+          self.PELabel2.setText(self.PE2.GetText())
         except:
           print("No status received yet")
     except:
-      self.systemStatus.setText("No connection")
-      self.targetStatus.setText("No connection")
+      self.USLabel0.setText("No connection")
+      self.USLabel1.setText("No connection")
       
     qt.QTimer.singleShot(2000, self.onTimeout)
 
