@@ -233,6 +233,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.connectionStatus.setText("Not connected")
     self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
 
+    self.galilStatus = qt.QLabel()
+    self.galilStatus.setText("No Controller Connection")
+    self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+    self.footswitchStatus = qt.QLabel()
+    self.footswitchStatus.setText("Footswitch OFF")
+    self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
     self.zFrameStatus = qt.QLabel()
     self.zFrameStatus.setText("No connection")
     self.zFrameStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
@@ -329,7 +337,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       self.igtl = slicer.util.getNode('OIGTL*')
       if self.igtl.GetState() == 0:
         self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
-        self.connectionStatus.setText("IGTL - OFF")
+        c
       elif self.igtl.GetState() == 1:
         self.connectionStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - WAIT")
@@ -337,19 +345,44 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - ON")
         try:
-          self.US1 = slicer.util.getNode('US1')
-          self.US2 = slicer.util.getNode('US2')
-          self.USLabel1.setText(self.US1.GetText())
-          self.USLabel2.setText(self.US2.GetText())
-          self.PE1 = slicer.util.getNode('PE1')
-          self.PE2 = slicer.util.getNode('PE2')
-          self.PELabel1.setText(self.PE1.GetText())
-          self.PELabel2.setText(self.PE2.GetText())
+          #get the motorPosition
+          tempString1 = slicer.util.getNode('motorPosition')
+          temp = tempString1.GetText()
+          motorPositions = temp.split("#")        
+          self.USLabel1.setText(motorPositions[0])
+          self.USLabel2.setText(motorPositions[1])
+          self.PELabel1.setText(motorPositions[2])
+          self.PELabel2.setText(motorPositions[3])
         except:
           print("No status received yet")
+          self.USLabel1.setText("-")
+          self.USLabel2.setText("-")
+          self.PELabel1.setText("-")
+          self.PELabel2.setText("-")
+        try:
+          tempString1 = slicer.util.getNode('status')
+          temp = tempString1.GetText()
+          if temp == "ONE":
+            self.galilStatus.setText("No Controller connection")
+            self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+          elif temp == "TWO":
+            self.galilStatus.setText("Controller connected")
+            self.galilStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+            self.footswitchStatus.setText("Footswitch OFF")
+            self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+          elif temp == "THREE":
+            self.galilStatus.setText("Controller connected")
+            self.galilStatus.setStyleSheet("background-color: green;border: 1px solid black;")           
+            self.footswitchStatus.setText("Footswitch ON")
+            self.footswitchStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+        except:
+          self.galilStatus.setText("No Controller connection")
+          self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+          self.footswitchStatus.setText("Footswitch OFF")
+          self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+            
     except:
-      self.USLabel0.setText("No connection")
-      self.USLabel1.setText("No connection")
+      self.connectionStatus.setText("IGTL - OFF")
       
     qt.QTimer.singleShot(2000, self.onTimeout)
 
