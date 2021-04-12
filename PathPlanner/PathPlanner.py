@@ -176,7 +176,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
     self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
-    self.inputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onSelect)
     self.zFrameSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onDefineZFrame)
     self.zFrameSelector.connect("nodeActivated(vtkMRMLNode*)", self.onDefineZFrame)
     self.targetSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onReloadTarget)
@@ -254,23 +253,26 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
 
     self.layout.addWidget(ConnectionCollapsibleButton)
+
+    ConnectionFormLayout.addWidget(self.openIGTL,0,1)
+    ConnectionFormLayout.addWidget(self.connectionStatus,0,2)
+    ConnectionFormLayout.addWidget(self.galilStatus,0,3)
+
     ConnectionFormLayout.addWidget(self.zFrameButton,1,1)
     ConnectionFormLayout.addWidget(self.sendTargetButton,1,2)
-    ConnectionFormLayout.addWidget(self.sendAngleButton,1,3)
-    ConnectionFormLayout.addWidget(self.openIGTL,0,1)
-    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,3)
-    ConnectionFormLayout.addWidget(self.connectionStatus,0,2)
-    ConnectionFormLayout.addWidget(self.sendMoveButton,3,2)
+    ConnectionFormLayout.addWidget(self.sendReconnectButton,1,3)
+
     ConnectionFormLayout.addWidget(self.zFrameStatus,2,1)
     ConnectionFormLayout.addWidget(self.targetStatus,2,2)
     ConnectionFormLayout.addWidget(self.angleStatus,2,3)
+
+    ConnectionFormLayout.addWidget(self.sendMoveButton,3,2)
     ConnectionFormLayout.addWidget(self.sendInitButton,3,1)
 
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
     self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
     self.sendTargetButton.connect('clicked(bool)', self.onSendTargetButton)
-    self.sendAngleButton.connect('clicked(bool)', self.onSendAngleButton)
     self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
@@ -323,14 +325,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     statusFormLayout.addWidget(self.USLabel1,1,3)
     statusFormLayout.addWidget(self.USLabel2,1,2)
 
-
     self.logic.loadzFrameModel()
 
     # Add vertical spacer
     self.layout.addStretch(1)
 
     # Refresh Apply button state
-    self.onSelect()
 
   def onTimeout(self):
     try:
@@ -394,18 +394,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     else:
       print('- zFrame NOT sent -\n')
 
-  def onSendAngleButton(self):
-    try:
-      self.angleTransformation = slicer.util.getNode('angleTransformation')
-    except:
-      self.angleTransformation = slicer.vtkMRMLLinearTransformNode()
-      self.angleTransformation.SetName("angleTransformation")
-      slicer.mrmlScene.AddNode(self.angleTransformation)
-    if self.logic.sendAngle(self.angleTransformation,self.angleXWidget,self.angleYWidget):
-      print('- Angle sent -\n')
-    else:
-      print('- Angle NOT sent -\n')
-
   def onSendInitButton(self):
     if self.logic.sendInit():
       print('- Initialization code sent -\n')
@@ -451,7 +439,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     self.sendMoveButton.enabled = True
     
-    if self.logic.sendTarget(self.targetTransformation,self.selectedTarget):
+    if self.logic.sendTarget(self.targetTransformation,self.selectedTarget,self.angleXWidget,self.angleYWidget):
       print('- Target sent -\n')
     else:
       print('- Target NOT sent -\n')
@@ -483,9 +471,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onDefineZFrame(self):
     self.logic.positionTemplate(self.zFrameSelector.currentNode())
-
-  def onSelect(self):
-    self.applyButton.enabled = self.inputSelector.currentNode()
 
   def onSegmentButton(self):
     slicer.util.selectModule('Editor')
@@ -523,7 +508,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
 
   def positionTemplate(self,zFrame):
-    self.zFrameModelNode.SetAndObserveTransformNodeID(zFrame.getOutputTransformation().GetID())
+    self.zFrameModelNode.SetAndObserveTransformNodeID(zFrame.GetID())
 
   def loadzFrameModel(self):
 
@@ -645,11 +630,14 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       return False
 
 
-  def sendTarget(self,targetTransformation,ras_target):
-    
+  def sendTarget(self,targetTransformation,ras_target,sliderX,sliderY):
+    X = sliderX.value
+    Y = sliderY.value
     try:
       vTransform = vtk.vtkTransform()
-      vTransform.Translate(ras_target[0],ras_target[1],ras_target[2])      
+      vTransform.Translate(ras_target[0],ras_target[1],ras_target[2]) 
+      vTransform.RotateX(X)
+      vTransform.RotateY(Y)     
       targetTransformation.SetAndObserveMatrixTransformToParent(vTransform.GetMatrix())
       
       if self.cnode.GetState() == 2:
