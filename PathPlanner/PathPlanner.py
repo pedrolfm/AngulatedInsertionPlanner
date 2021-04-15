@@ -73,8 +73,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.inputSelector.setToolTip( "Pick the prostate image to select the target." )
  #   parametersFormLayout.addRow("Prostate Volume: ", self.inputSelector)
 
-    mainWindow = slicer.util.mainWindow()
-    mainWindow.moduleSelector().selectModule('CurveMaker')
 
     #
     # target selector
@@ -543,7 +541,19 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     path_points.SetNthFiducialPosition(1, _point2[0], _point2[1], _point2[2])
     path_points.SetNthFiducialPosition(2, _point3[0], _point3[1], _point3[2])
-    self.cmlogic.updateCurve()
+
+
+    try:
+      destNode = slicer.util.getNode('pathModel')
+            
+    except slicer.util.MRMLNodeNotFoundException:
+      destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
+      destNode.SetName('pathModel')
+      slicer.mrmlScene.AddNode(destNode)
+
+    markupsToModel = slicer.modules.markupstomodel.logic()
+    markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
+    destNode.GetDisplayNode().SetVisibility(True)
 
 
   def sendMove(self):
@@ -783,14 +793,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     
     zdist = target_z[2] #add 100, but we need to remove that.
 
- #   slicer.util.selectModule('CurveMaker')
-    try:
-      print("here 1") 
-      self.cmlogic = slicer.modules.CurveMakerWidget.logic
-    except:
-      slicer.util.errorDisplay("No CurveMaker installed")
-      return
-
     try:
       path_points = slicer.util.getNode('path')
             
@@ -833,9 +835,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
     path_points.SetNthFiducialPosition(2, entry[0], entry[1], entry[2])
 
-    self.cmlogic.setInterpolationMethod(1)
-    self.cmlogic.setRing(0)
-    self.cmlogic.setTubeRadius(1.0)
 
     try:
       destNode = slicer.util.getNode('pathModel')
@@ -845,11 +844,15 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       destNode.SetName('pathModel')
       slicer.mrmlScene.AddNode(destNode)
 
+    markupsToModel = slicer.modules.markupstomodel.logic()
+    markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
+    destNode.GetDisplayNode().SetVisibility(True)
+    
 
-    self.cmlogic.SourceNode = path_points
-    self.cmlogic.DestinationNode = destNode
-    self.cmlogic.enableAutomaticUpdate(True)
-    self.cmlogic.updateCurve()
+#    self.cmlogic.SourceNode = path_points
+#    self.cmlogic.DestinationNode = destNode
+#    self.cmlogic.enableAutomaticUpdate(True)
+#    self.cmlogic.updateCurve()
     angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
