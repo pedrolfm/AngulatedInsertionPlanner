@@ -510,7 +510,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def loadzFrameModel(self):
 
-    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/dataForTesting/Workspace_1_tissue.vtk', returnNode=True)
+    _, self.zFrameModelNode = slicer.util.loadModel('/home/smart/Downloads/Workspace_1_tissue.vtk', returnNode=True)
     #slicer.mrmlScene.AddNode(self.zFrameModelNode)
     #modelDisplayNode = self.zFrameModelNode.GetDisplayNode()
     #modelDisplayNode.SetColor(1, 1, 0)
@@ -730,20 +730,31 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def GetCenter(self, inputVolume2):
 
     try:
-      modelHierarchyNode = slicer.util.getNode('ModelHierarchy')
-    except:
+      newNodeClassName = 'vtkMRMLModelHierarchyNode'
+      modelHierarchyNode = slicer.util.getNode("ModelHierarchy_22")
+      print("c1a")
+      if modelHierarchyNode.GetClassName() != newNodeClassName:
+        # target node incompatible, need to create a new one
+        slicer.mrmlScene.RemoveNode(modelHierarchyNode)
+        modelHierarchyNode = None
+        print("c1b")
+    except slicer.util.MRMLNodeNotFoundException:
       modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
+      modelHierarchyNode.SetName("ModelHierarchy_22")
       slicer.mrmlScene.AddNode(modelHierarchyNode)
       self.createModels(inputVolume2, modelHierarchyNode)
+      print("c2")
 
     nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
     if (nOfModels > 1):
       slicer.util.errorDisplay("More than one segmented ablation volume")
       return
+    print(nOfModels)
     chnode = modelHierarchyNode.GetNthChildNode(0)
+    print(chnode)
     mnode = chnode.GetAssociatedNode()
     objectPoly = mnode.GetPolyData()
-
+    print("center2")
     centerOfmass = vtk.vtkCenterOfMass()
     centerOfmass.SetInputData(objectPoly)
     centerOfmass.SetUseScalarsAsWeights(False)
@@ -782,7 +793,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     mtx.Invert()
     center = self.GetCenter(labelMapNode)
-    
     _input = [selected_target[0], selected_target[1], selected_target[2], 1]
     target_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,target_z)
@@ -822,7 +832,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
     check = self.checkKinematics(entry_z,center_z,target_z,zdist)
 
-    print("here 1")
     #TODO: add here the code to fix the translation limit.
 
     entry = [0.0, 0.0, 0.0, 1]
