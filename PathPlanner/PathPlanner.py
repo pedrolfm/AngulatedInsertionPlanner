@@ -346,13 +346,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           #get the motorPosition
           tempString1 = slicer.util.getNode('motorPosition')
           temp = tempString1.GetText()
-          motorPositions = temp.split("#")        
+          motorPositions = temp.split(", ")        
           self.USLabel1.setText(motorPositions[0])
           self.USLabel2.setText(motorPositions[1])
           self.PELabel1.setText(motorPositions[2])
           self.PELabel2.setText(motorPositions[3])
         except:
-          print("No status received yet")
           self.USLabel1.setText("-")
           self.USLabel2.setText("-")
           self.PELabel1.setText("-")
@@ -360,19 +359,13 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           tempString1 = slicer.util.getNode('status')
           temp = tempString1.GetText()
-          if temp == "ONE":
-            self.galilStatus.setText("No Controller connection")
+          self.galilStatus.setText(temp)
+          if temp == "No Galil connection":
             self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
-          elif temp == "TWO":
-            self.galilStatus.setText("Controller connected")
-            self.galilStatus.setStyleSheet("background-color: green;border: 1px solid black;")
-            self.footswitchStatus.setText("Footswitch OFF")
-            self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
-          elif temp == "THREE":
-            self.galilStatus.setText("Controller connected")
+          elif temp == "FTSW OFF":
+            self.galilStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
+          elif temp == "FTSW ON":
             self.galilStatus.setStyleSheet("background-color: green;border: 1px solid black;")           
-            self.footswitchStatus.setText("Footswitch ON")
-            self.footswitchStatus.setStyleSheet("background-color: green;border: 1px solid black;")
         except:
           self.galilStatus.setText("No Controller connection")
           self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
@@ -469,6 +462,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onDefineZFrame(self):
     self.logic.positionTemplate(self.zFrameSelector.currentNode())
+    print("Position tamplate limits")
 
   def onSegmentButton(self):
     slicer.util.selectModule('Editor')
@@ -553,7 +547,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
-    destNode.GetDisplayNode().SetVisibility(True)
+    #destNode.GetDisplayNode().SetVisibility(True)
 
 
   def sendMove(self):
@@ -730,31 +724,18 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def GetCenter(self, inputVolume2):
 
     try:
-      newNodeClassName = 'vtkMRMLModelHierarchyNode'
-      modelHierarchyNode = slicer.util.getNode("ModelHierarchy_22")
-      print("c1a")
-      if modelHierarchyNode.GetClassName() != newNodeClassName:
-        # target node incompatible, need to create a new one
-        slicer.mrmlScene.RemoveNode(modelHierarchyNode)
-        modelHierarchyNode = None
-        print("c1b")
-    except slicer.util.MRMLNodeNotFoundException:
+      chnode = slicer.util.getNode("Model_1_tissue")
+    except:
       modelHierarchyNode = slicer.mrmlScene.CreateNodeByClass("vtkMRMLModelHierarchyNode")
-      modelHierarchyNode.SetName("ModelHierarchy_22")
+      modelHierarchyNode.SetName("ModelHierarchy")
       slicer.mrmlScene.AddNode(modelHierarchyNode)
       self.createModels(inputVolume2, modelHierarchyNode)
-      print("c2")
+      chnode = slicer.util.getNode("Model_1_tissue")
+      print(chnode)
 
-    nOfModels = modelHierarchyNode.GetNumberOfChildrenNodes()
-    if (nOfModels > 1):
-      slicer.util.errorDisplay("More than one segmented ablation volume")
-      return
-    print(nOfModels)
-    chnode = modelHierarchyNode.GetNthChildNode(0)
+    #mnode = chnode.GetAssociatedNode()
+    objectPoly = chnode.GetPolyData()
     print(chnode)
-    mnode = chnode.GetAssociatedNode()
-    objectPoly = mnode.GetPolyData()
-    print("center2")
     centerOfmass = vtk.vtkCenterOfMass()
     centerOfmass.SetInputData(objectPoly)
     centerOfmass.SetUseScalarsAsWeights(False)
@@ -844,19 +825,17 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
     path_points.SetNthFiducialPosition(2, entry[0], entry[1], entry[2])
 
-
     try:
       destNode = slicer.util.getNode('pathModel')
-            
-    except slicer.util.MRMLNodeNotFoundException:
+    except:
       destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
       destNode.SetName('pathModel')
       slicer.mrmlScene.AddNode(destNode)
 
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
-    destNode.GetDisplayNode().SetVisibility(True)
-    
+    visibility = destNode.GetDisplayNode()
+#    visibility.SetVisibility(True)  
 
 #    self.cmlogic.SourceNode = path_points
 #    self.cmlogic.DestinationNode = destNode
