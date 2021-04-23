@@ -500,16 +500,38 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
 
   def positionTemplate(self,zFrame):
-    self.zFrameModelNode.SetAndObserveTransformNodeID(zFrame.GetID())
+
+
+    vTransform_t = vtk.vtkTransform()
+    vTransform_t.Translate(0,107.0,-114)
+    vTransform_r = vtk.vtkTransform()
+    vTransform_r.RotateX(-90)
+    vT_temp = vtk.vtkTransform()
+    vT_temp2 = vtk.vtkTransform()
+
+    #vtk.vtkMatrix4x4.Multiply4x4(zFrame.GetMatrixTransformFromParent(),vTransform_r.GetMatrix(),vT_temp.GetMatrix())
+    
+    #vtk.vtkMatrix4x4.Multiply4x4(vTransform_r.GetMatrix(),vTransform_t.GetMatrix(),vT_temp.GetMatrix())
+    vtk.vtkMatrix4x4.Multiply4x4(vTransform_t.GetMatrix(),vTransform_r.GetMatrix(),vT_temp.GetMatrix())
+    vtk.vtkMatrix4x4.Multiply4x4(vT_temp.GetMatrix(),zFrame.GetMatrixTransformFromParent(),vT_temp2.GetMatrix())
+
+    print(zFrame.GetMatrixTransformToParent())
+    print(vT_temp.GetMatrix())
+    print(vT_temp2.GetMatrix())
+
+    transformNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformNode")
+    transformNode.SetAndObserveMatrixTransformToParent(vT_temp2.GetMatrix())
+       
+    self.zFrameModelNode.SetAndObserveTransformNodeID(transformNode.GetID())
 
   def loadzFrameModel(self):
 
-    _, self.zFrameModelNode = slicer.util.loadModel('/home/smart/Downloads/Workspace_1_tissue.vtk', returnNode=True)
-    #slicer.mrmlScene.AddNode(self.zFrameModelNode)
-    #modelDisplayNode = self.zFrameModelNode.GetDisplayNode()
-    #modelDisplayNode.SetColor(1, 1, 0)
-    self.zFrameModelNode.SetDisplayVisibility(False)
-
+    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/dataForTesting/templateLimits.vtk', returnNode=True)
+    slicer.mrmlScene.AddNode(self.zFrameModelNode)
+    self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
+    self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionThickness(3)
+    self.zFrameModelNode.GetDisplayNode().SetColor(1,1,0)
+    print("LOADED MODEL")
 
   def setzFrameVisibility(self,param):
     self.zFrameModelNode.SetDisplayVisibility(param)    
@@ -731,7 +753,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       slicer.mrmlScene.AddNode(modelHierarchyNode)
       self.createModels(inputVolume2, modelHierarchyNode)
       chnode = slicer.util.getNode("Model_1_tissue")
-      print(chnode)
+    print("test")
 
     #mnode = chnode.GetAssociatedNode()
     objectPoly = chnode.GetPolyData()
@@ -784,6 +806,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     
     zdist = target_z[2] #add 100, but we need to remove that.
 
+    print("here")
+
     try:
       path_points = slicer.util.getNode('path')
             
@@ -806,6 +830,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     count = 0
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
+    print("here 2")
     if check == 1 or check == 2:
       center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
       _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
