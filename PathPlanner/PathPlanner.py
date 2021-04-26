@@ -523,14 +523,26 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     transformNode.SetAndObserveMatrixTransformToParent(vT_temp2.GetMatrix())
        
     self.zFrameModelNode.SetAndObserveTransformNodeID(transformNode.GetID())
+    self.zFrameModelNode.GetDisplayNode().SetVisibility(True)
+    self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
 
   def loadzFrameModel(self):
 
     _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/dataForTesting/templateLimits.vtk', returnNode=True)
     slicer.mrmlScene.AddNode(self.zFrameModelNode)
-    self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
+    self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(False)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionThickness(3)
     self.zFrameModelNode.GetDisplayNode().SetColor(1,1,0)
+    self.zFrameModelNode.GetDisplayNode().SetVisibility(False)
+
+    try:
+      destNode = slicer.util.getNode('pathModel')
+    except:
+      destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
+      destNode.SetName('pathModel')
+      slicer.mrmlScene.AddNode(destNode)
+        
+    
     print("LOADED MODEL")
 
   def setzFrameVisibility(self,param):
@@ -859,8 +871,11 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
-    visibility = destNode.GetDisplayNode()
-#    visibility.SetVisibility(True)  
+    destNode.SetDisplayVisibility(True) 
+ #   markupsToModel.SetVisibility(True)
+ #   destNode.GetDisplayNode().SetVisibility(True)
+#    destNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
+
 
 #    self.cmlogic.SourceNode = path_points
 #    self.cmlogic.DestinationNode = destNode
