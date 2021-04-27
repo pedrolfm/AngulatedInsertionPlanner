@@ -476,7 +476,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.angleXWidget.value = 0.0
         self.angleYWidget.value = 0.0
         nOfRows = self.targetTable.rowCount
-        self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
+        if self.segmentationSelector.currentNode() == None:
+            self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
+        else:
+            self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
         for r in range(nOfRows):         
             self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
@@ -798,6 +801,75 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     vtk.vtkMatrix4x4.Multiply4x4(_translation, _temp, rotatedZframe)
 
     return rotatedZframe
+
+  def pathStraight(self,selected_target,zFrameTransform):
+
+    mtx = vtk.vtkMatrix4x4()
+    mtx_input = vtk.vtkMatrix4x4()
+    zFrameTransform.GetMatrixTransformToWorld(mtx_input)
+    mtx = self.transformZframe(mtx_input)
+
+    
+    mtx.Invert()
+    _input = [selected_target[0], selected_target[1], selected_target[2], 1]
+    target_z = [0.0, 0.0, 0.0, 1]
+    mtx.MultiplyPoint(_input,target_z)
+
+    zdist = target_z[2] #add 100, but we need to remove that.
+    print("StraightPath...")
+    try:
+      path_points = slicer.util.getNode('path')
+    except slicer.util.MRMLNodeNotFoundException:
+      path_points = slicer.vtkMRMLMarkupsFiducialNode()
+      path_points.SetName('path')
+      slicer.mrmlScene.AddNode(path_points)
+      target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
+      anatomy_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
+      template_fiducial = slicer.modules.markups.logic().AddFiducial(0,0,0)
+      path_points.SetNthFiducialLabel(0, "target")
+      path_points.SetNthFiducialLabel(1, "anatomy")
+      path_points.SetNthFiducialLabel(2, "insertion")
+
+    entry_z = [target_z[0], target_z[1], target_z[2]/2.0, 1.0]
+
+    center_z = [target_z[0], target_z[1], 0, 1.0]
+
+    print("StraightPath...2")
+    count = 0
+    check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
+    if check == 1 or check == 2:
+      center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
+      _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
+      _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
+      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
+    check = self.checkKinematics(entry_z,center_z,target_z,zdist)
+
+    #TODO: add here the code to fix the translation limit.
+    print("StraightPath...3")
+    entry = [0.0, 0.0, 0.0, 1]
+    center = [0.0, 0.0, 0.0, 1]
+    mtx.Invert()
+    mtx.MultiplyPoint(entry_z,entry)
+    mtx.MultiplyPoint(center_z,center)
+
+    path_points.SetNthFiducialPosition(0, selected_target[0], selected_target[1], selected_target[2])
+    path_points.SetNthFiducialPosition(1, center[0], center[1], center[2])
+    path_points.SetNthFiducialPosition(2, entry[0], entry[1], entry[2])
+
+    try:
+      destNode = slicer.util.getNode('pathModel')
+    except:
+      destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
+      destNode.SetName('pathModel')
+      slicer.mrmlScene.AddNode(destNode)
+
+    markupsToModel = slicer.modules.markupstomodel.logic()
+    markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
+    destNode.SetDisplayVisibility(True) 
+
+    red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
+    red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
+
 
   def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode,zFrameTransform):
 
