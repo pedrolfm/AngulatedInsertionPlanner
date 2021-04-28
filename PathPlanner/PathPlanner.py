@@ -13,7 +13,7 @@ import time
 #
 
 #translation limits of Smart Template
-LIMITS = [-20,20,-20,40]
+LIMITS = [-25,25,-20,40]
 
 class PathPlanner(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
@@ -830,22 +830,26 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
-    entry_z = [target_z[0], target_z[1], target_z[2]/2.0, 1.0]
+    center_z = [target_z[0], target_z[1], target_z[2]/2.0, 1.0]
 
-    center_z = [target_z[0], target_z[1], 0, 1.0]
+    entry_z = [target_z[0], target_z[1], 0, 1.0]
 
+    print(entry_z)
     print("StraightPath...2")
     count = 0
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
     if check == 1 or check == 2:
+      entry_z = self.findEntry(entry_z,center_z,target_z)      
+      center_z = [entry_z[0]+(target_z[0]-entry_z[0])/2.0, entry_z[1]+(target_z[1]-entry_z[1])/2.0, target_z[2]/2.0, 1.0]
+    print(entry_z)
+    check = self.checkKinematics(entry_z,center_z,target_z,zdist)
+    if check == 1 or check == 2:
       center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
       _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
       _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
-      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
-    check = self.checkKinematics(entry_z,center_z,target_z,zdist)
+      entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0] 
+    print(entry_z)
 
-    #TODO: add here the code to fix the translation limit.
-    print("StraightPath...3")
     entry = [0.0, 0.0, 0.0, 1]
     center = [0.0, 0.0, 0.0, 1]
     mtx.Invert()
@@ -869,6 +873,21 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
     red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
+
+  def findEntry(self,entry,center,target):
+    print(entry)
+    print(target)
+    if target[0] > LIMITS[1]:
+      entry[0] = LIMITS[1]
+    if target[0] < LIMITS[0]:
+      entry[0] = LIMITS[0]
+    if target[1] > LIMITS[3]:
+      entry[1] = LIMITS[3]
+    if target[1] < LIMITS[2]:
+      entry[1] = LIMITS[2]
+    print(entry)
+    print(target)
+    return entry
 
 
   def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode,zFrameTransform):
@@ -922,7 +941,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
     check = self.checkKinematics(entry_z,center_z,target_z,zdist)
 
-    #TODO: add here the code to fix the translation limit.
+
 
     entry = [0.0, 0.0, 0.0, 1]
     center = [0.0, 0.0, 0.0, 1]
@@ -972,6 +991,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
         entry[1] = LIMITS[3]
       _angle1 = (entry[0]-target[0])/zdist
       _angle2 = (entry[1]-target[1])/zdist
+      print(_angle1)
+      print(_angle2)
       if _angle1 < -1.0:
         _angle1 = -1.0
       if _angle1 > 1.0:
@@ -982,6 +1003,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
         _angle2 = 1.0
       angle1 = np.arcsin(_angle1)
       angle2 = np.arcsin(_angle2)
+      print(angle1)
+      print(angle2)
     else:
       _angle1 = (entry[0]-target[0])/zdist
       _angle2 = (entry[1]-target[1])/zdist
