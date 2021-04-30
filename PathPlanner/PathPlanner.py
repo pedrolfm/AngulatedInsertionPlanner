@@ -276,13 +276,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
     
-    #self.timer = qt.QTimer()
-    
-    #self.timer.connect('timeout(bool)', self.onTimeout)
 
-    #self.timer.timeout.connect(self.onTimeout)
-    #self.timer.setSingleShot(True)
-    #self.timer.start(10000)
     qt.QTimer.singleShot(2000, self.onTimeout)
 
     #
@@ -522,8 +516,13 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     print(vT_temp.GetMatrix())
     print(vT_temp2.GetMatrix())
 
+    mtx = vtk.vtkMatrix4x4()
+    mtx_input = vtk.vtkMatrix4x4()
+    zFrame.GetMatrixTransformToWorld(mtx_input)
+    mtx = self.transformZframe(mtx_input)
+
     transformNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLTransformNode")
-    transformNode.SetAndObserveMatrixTransformToParent(vT_temp2.GetMatrix())
+    transformNode.SetAndObserveMatrixTransformToParent(mtx)#vT_temp2.GetMatrix())
        
     self.zFrameModelNode.SetAndObserveTransformNodeID(transformNode.GetID())
     self.zFrameModelNode.GetDisplayNode().SetVisibility(True)
@@ -809,13 +808,18 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     zFrameTransform.GetMatrixTransformToWorld(mtx_input)
     mtx = self.transformZframe(mtx_input)
 
-    
+    #TODO: check
     mtx.Invert()
+
+    
     _input = [selected_target[0], selected_target[1], selected_target[2], 1]
     target_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,target_z)
 
     zdist = target_z[2] #add 100, but we need to remove that.
+    print("====")
+    print(selected_target)
+    print(target_z)
     print("StraightPath...")
     try:
       path_points = slicer.util.getNode('path')
