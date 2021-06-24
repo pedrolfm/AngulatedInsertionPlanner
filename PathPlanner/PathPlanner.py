@@ -145,6 +145,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     parametersFormLayout.addRow(self.selectTarget)
 
+#    label = qt.QLabel(self)
+#    pixmap = qt.QPixmap('/Users/pedro/Pictures/ChickenForce.png')
+#    label.setPixmap(pixmap)
+#    parametersFormLayout.addRow(label)
+
     #
     # Angulation Area
     #
@@ -380,10 +385,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('- zFrame NOT sent -\n')
 
   def onSendInitButton(self):
-    if self.logic.sendInit():
-      print('- Initialization code sent -\n')
-    else:
-      print('- Initialization code NOT sent -\n')
+
+    slicer.util.selectModule('Homing')
+    #if self.logic.sendInit():
+    #  print('- Initialization code sent -\n')
+    #else:
+    #  print('- Initialization code NOT sent -\n')
 
   def onReloadTarget(self):
     try:
