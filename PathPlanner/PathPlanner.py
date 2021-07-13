@@ -841,6 +841,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
+    path_points.SetDisplayVisibility(False)
     center_z = [target_z[0], target_z[1], target_z[2]/2.0, 1.0]
 
     entry_z = [target_z[0], target_z[1], 0, 1.0]
@@ -880,7 +881,27 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
-    destNode.SetDisplayVisibility(True) 
+    destNode.SetDisplayVisibility(True)
+
+    try:
+      print("1")
+      modelDisplay = slicer.util.getNode('displayPath')
+      modelDisplay.SetColor(0,1,0)
+    except:
+      modelDisplay = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelDisplayNode')
+      modelDisplay.SetName('displayPath')
+      print("3")
+      modelDisplay.SetColor(0,1,0)
+      slicer.mrmlScene.AddNode(modelDisplay)
+
+
+    print("4")
+    modelDisplay.SetVisibility(True)
+    print("5")
+    destNode.SetAndObserveDisplayNodeID(modelDisplay.GetID())
+    print("6")
+    
+#    destNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
 
     red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
     red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
@@ -936,7 +957,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       path_points.SetNthFiducialLabel(1, "anatomy")
       path_points.SetNthFiducialLabel(2, "insertion")
 
-
+    path_points.SetDisplayVisibility(False)
     _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
     _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
 
@@ -974,9 +995,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
     destNode.SetDisplayVisibility(True) 
- #   markupsToModel.SetVisibility(True)
- #   destNode.GetDisplayNode().SetVisibility(True)
-#    destNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
 
 
 #    self.cmlogic.SourceNode = path_points
