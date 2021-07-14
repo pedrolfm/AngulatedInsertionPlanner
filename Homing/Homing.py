@@ -3,6 +3,7 @@ import unittest
 import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
+import time
 
 #
 # Homing
@@ -95,7 +96,7 @@ class HomingWidget(ScriptedLoadableModuleWidget):
 
 
     self.label = qt.QLabel()
-    pixmap = qt.QPixmap('/Users/pedro/Projects/AngulationPlanner/AngulatedInsertionPlanner/Homing/Resources/CB.png')
+    pixmap = qt.QPixmap('/Resources/CB.png')
     self.label.setPixmap(pixmap)
 
     piezoFormLayout.addRow(self.label)
@@ -218,7 +219,7 @@ class HomingLogic(ScriptedLoadableModuleLogic):
     if self.cnode.GetState() == 2:
       self.cnode.RegisterOutgoingMRMLNode(self.initText)
       self.cnode.PushNode(self.initText)
-      time.sleep(0.1)
+      time.sleep(2)
       self.cnode.UnregisterOutgoingMRMLNode(self.initText)    
       return True
     else:
@@ -232,8 +233,8 @@ class HomingLogic(ScriptedLoadableModuleLogic):
     except:
       self.initText = slicer.vtkMRMLTextNode()
       self.initText.SetName("INIT")
-      self.initText.SetText("INIT"+position)
       slicer.mrmlScene.AddNode(self.initText)
+    self.initText.SetText("INIT"+position)
     if self.cnode.GetState() == 2:
       self.cnode.RegisterOutgoingMRMLNode(self.initText)
       self.cnode.PushNode(self.initText)
