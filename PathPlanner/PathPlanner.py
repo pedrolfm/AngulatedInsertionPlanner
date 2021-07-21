@@ -537,7 +537,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def loadzFrameModel(self):
 
-    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/dataForTesting/templateLimits.vtk', returnNode=True)
+    _, self.zFrameModelNode = slicer.util.loadModel('/home/smart/Documents/Modules/AngulatedInsertionPlanner/PathPlanner/Resources/templateLimits.vtk', returnNode=True)
     slicer.mrmlScene.AddNode(self.zFrameModelNode)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(False)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionThickness(3)
@@ -678,8 +678,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
 
   def sendTarget(self,targetTransformation,ras_target,sliderX,sliderY):
-    X = sliderX.value
-    Y = sliderY.value
+    X = -sliderX.value
+    Y = -sliderY.value
     try:
       vTransform = vtk.vtkTransform()
       vTransform.Translate(ras_target[0],ras_target[1],ras_target[2]) 

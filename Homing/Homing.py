@@ -141,7 +141,7 @@ class HomingWidget(ScriptedLoadableModuleWidget):
     elif verticalPosition == "Bottom":
       namev = "B"
     name = nameh + namev
-    pixmap = qt.QPixmap('/Users/pedro/Projects/AngulationPlanner/AngulatedInsertionPlanner/Homing/Resources/'+name+'.png')
+    pixmap = qt.QPixmap('/home/smart/Documents/Modules/AngulatedInsertionPlanner/Homing/Resources/'+name+'.png')
     self.label.setPixmap(pixmap)
 
 
@@ -214,8 +214,8 @@ class HomingLogic(ScriptedLoadableModuleLogic):
     except:
       self.initText = slicer.vtkMRMLTextNode()
       self.initText.SetName("INIT")
-      self.initText.SetText("INITUS")
       slicer.mrmlScene.AddNode(self.initText)
+    self.initText.SetText("INITUS")
     if self.cnode.GetState() == 2:
       self.cnode.RegisterOutgoingMRMLNode(self.initText)
       self.cnode.PushNode(self.initText)
