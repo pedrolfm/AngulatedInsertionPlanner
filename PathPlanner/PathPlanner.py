@@ -884,22 +884,20 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     destNode.SetDisplayVisibility(True)
 
     try:
-      print("1")
       modelDisplay = slicer.util.getNode('displayPath')
       modelDisplay.SetColor(0,1,0)
     except:
       modelDisplay = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelDisplayNode')
       modelDisplay.SetName('displayPath')
-      print("3")
       modelDisplay.SetColor(0,1,0)
       slicer.mrmlScene.AddNode(modelDisplay)
 
 
-    print("4")
+    modelDisplay.SetSliceIntersectionVisibility(True)
+    modelDisplay.SetSliceIntersectionThickness(3)
     modelDisplay.SetVisibility(True)
-    print("5")
     destNode.SetAndObserveDisplayNodeID(modelDisplay.GetID())
-    print("6")
+
     
 #    destNode.GetDisplayNode().SetSliceIntersectionVisibility(True)
 
@@ -997,10 +995,21 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     destNode.SetDisplayVisibility(True) 
 
 
-#    self.cmlogic.SourceNode = path_points
-#    self.cmlogic.DestinationNode = destNode
-#    self.cmlogic.enableAutomaticUpdate(True)
-#    self.cmlogic.updateCurve()
+    try:
+      modelDisplay = slicer.util.getNode('displayPath')
+      modelDisplay.SetColor(0,1,0)
+    except:
+      modelDisplay = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelDisplayNode')
+      modelDisplay.SetName('displayPath')
+      modelDisplay.SetColor(0,1,0)
+      slicer.mrmlScene.AddNode(modelDisplay)
+
+
+    modelDisplay.SetSliceIntersectionVisibility(True)
+    modelDisplay.SetSliceIntersectionThickness(3)
+    modelDisplay.SetVisibility(True)
+    destNode.SetAndObserveDisplayNodeID(modelDisplay.GetID())
+
     angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
