@@ -12,6 +12,13 @@ import time
 # PathPlanner
 #
 
+# dimentions from the center of the RCM to the edge of the needle guide:
+DIM1 = 23.0
+DIM2 = 18.0
+DIM3 = 13.0
+DIM4 = 8.0
+DIM5 = 3.0
+
 #translation limits of Smart Template
 LIMITS = [-25,25,-20,40]
 
@@ -184,6 +191,53 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.targetSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onReloadTarget)
     self.targetSelector.connect("nodeActivated(vtkMRMLNode*)", self.onReloadTarget)
 
+    # Insertion lengths for the 5 different needle guide positions
+    insertionTable1 = qt.QLabel()
+    insertionTable1.setText(" pos 1 ")
+    insertionTable1.setStyleSheet("background-color: yellow;border: 1px solid black;")
+    insertionTable2 = qt.QLabel()
+    insertionTable2.setText(" pos 2 ")
+    insertionTable2.setStyleSheet("background-color: yellow;border: 1px solid black;")
+    insertionTable3 = qt.QLabel()
+    insertionTable3.setText(" pos 3 ")
+    insertionTable3.setStyleSheet("background-color: yellow;border: 1px solid black;")
+    insertionTable4 = qt.QLabel()
+    insertionTable4.setText(" pos 4 ")
+    insertionTable4.setStyleSheet("background-color: yellow;border: 1px solid black;")
+    insertionTable5 = qt.QLabel()
+    insertionTable5.setText(" pos 5 ")
+    insertionTable5.setStyleSheet("background-color: yellow;border: 1px solid black;")
+    self.insertion1 = qt.QLabel()
+    self.insertion1.setText(" -- ")
+    self.insertion1.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.insertion2 = qt.QLabel()
+    self.insertion2.setText(" -- ")
+    self.insertion2.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.insertion3 = qt.QLabel()
+    self.insertion3.setText(" -- ")
+    self.insertion3.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.insertion4 = qt.QLabel()
+    self.insertion4.setText(" -- ")
+    self.insertion4.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.insertion5 = qt.QLabel()
+    self.insertion5.setText(" -- ")
+    self.insertion5.setStyleSheet("background-color: white;border: 1px solid black;")
+
+    insertionCollapsibleButton = ctk.ctkCollapsibleButton()
+    insertionCollapsibleButton.text = "Insertion lengths"
+    insertionTable = qt.QGridLayout(insertionCollapsibleButton)
+    insertionTable.addWidget(insertionTable1,0,1)
+    insertionTable.addWidget(insertionTable2,0,2)
+    insertionTable.addWidget(insertionTable3,0,3)
+    insertionTable.addWidget(insertionTable4,0,4)
+    insertionTable.addWidget(insertionTable5,0,5)
+    insertionTable.addWidget(self.insertion1,1,1)
+    insertionTable.addWidget(self.insertion2,1,2)
+    insertionTable.addWidget(self.insertion3,1,3)
+    insertionTable.addWidget(self.insertion4,1,4)
+    insertionTable.addWidget(self.insertion5,1,5)
+    self.layout.addWidget(insertionCollapsibleButton)
+
     #
     # Connection area
     #
@@ -334,7 +388,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       self.igtl = slicer.util.getNode('OIGTL*')
       if self.igtl.GetState() == 0:
         self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
-        c
+        self.connectionStatus.setText("No connection")
       elif self.igtl.GetState() == 1:
         self.connectionStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - WAIT")
@@ -478,9 +532,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.angleYWidget.value = 0.0
         nOfRows = self.targetTable.rowCount
         if self.segmentationSelector.currentNode() == None:
-            self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
+            self.zDistance2Target = self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
+            self.upDateInsertionLength(self.zDistance2Target,0)
         else:
-            self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
+          self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
         for r in range(nOfRows):         
             self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
@@ -496,7 +551,17 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.targetTable.item(row,3).setBackground(qt.QColor(255,100,100))
     except:
         slicer.util.errorDisplay("No target selected")
-      
+
+  def upDateInsertionLength(self,ins,type):
+    if type == 0:
+      self.insertion1.setText(str(int(ins + DIM1)) + "mm")
+      self.insertion2.setText(str(int(ins + DIM2)) + "mm")
+      self.insertion3.setText(str(int(ins + DIM3)) + "mm")
+      self.insertion4.setText(str(int(ins + DIM4)) + "mm")
+      self.insertion5.setText(str(int(ins + DIM5)) + "mm")
+    elif type == 1:
+      print("TODO angulation.")
+
 #
 # PathPlannerLogic
 #
@@ -537,7 +602,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def loadzFrameModel(self):
 
-    _, self.zFrameModelNode = slicer.util.loadModel('/home/smart/Documents/Modules/AngulatedInsertionPlanner/PathPlanner/Resources/templateLimits.vtk', returnNode=True)
+    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/AngulatedInsertionPlanner/PathPlanner/Resources/templateLimits.vtk', returnNode=True)
     slicer.mrmlScene.AddNode(self.zFrameModelNode)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(False)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionThickness(3)
@@ -550,8 +615,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       destNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLModelNode')
       destNode.SetName('pathModel')
       slicer.mrmlScene.AddNode(destNode)
-        
-    
     print("LOADED MODEL")
 
   def setzFrameVisibility(self,param):
@@ -727,10 +790,11 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def openConnection(self):
 
-    if slicer.util.getNodesByClass('vtkMRMLIGTLConnectorNode'):
+    try:
+      slicer.util.getNodesByClass('vtkMRMLIGTLConnectorNode')
       self.cnode = slicer.util.getNode('OIGTL*')
       print(' - openIGTLink already open -')
-    else:
+    except:
       self.cnode = slicer.vtkMRMLIGTLConnectorNode()
       slicer.mrmlScene.AddNode(self.cnode)
       self.cnode.SetTypeServer(18944)
@@ -846,7 +910,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     entry_z = [target_z[0], target_z[1], 0, 1.0]
 
-    print(entry_z)
+    print(target_z)
     print("StraightPath...2")
     count = 0
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
@@ -903,6 +967,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
     red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
+    return target_z[2]
 
   def findEntry(self,entry,center,target):
     print(entry)
