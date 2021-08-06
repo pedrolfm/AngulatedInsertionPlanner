@@ -743,8 +743,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       return False
 
   def sendTarget(self,targetTransformation,ras_target,sliderX,sliderY):
-    X = -sliderX.value
-    Y = -sliderY.value
+    X = sliderX.value
+    Y = sliderY.value
     try:
       vTransform = vtk.vtkTransform()
       vTransform.Translate(ras_target[0],ras_target[1],ras_target[2]) 
