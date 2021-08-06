@@ -13,11 +13,13 @@ import time
 #
 
 # dimentions from the center of the RCM to the edge of the needle guide:
-DIM1 = 23.0
-DIM2 = 18.0
-DIM3 = 13.0
-DIM4 = 8.0
-DIM5 = 3.0
+DIM1 = 54.5
+DIM2 = 49.5
+DIM3 = 44.5
+DIM4 = 39.5
+DIM5 = 34.5
+
+deg2rad = 3.14/180.0
 
 #translation limits of Smart Template
 LIMITS = [-25,25,-20,40]
@@ -461,7 +463,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     except:
       print('- No target list? -\n')
 
-
   def onsendMoveButton(self):
     if self.logic.sendMove():
       print('- Move code sent -\n')
@@ -473,7 +474,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('- Reconnection code sent -\n')
     else:
       print('- Reconnection code NOT sent -\n')
-
 
   def onSendTargetButton(self):
     try:
@@ -489,7 +489,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('- Target sent -\n')
     else:
       print('- Target NOT sent -\n')
-
 
   def onOpenIGTL(self):
     if self.logic.openConnection():
@@ -513,7 +512,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('No path selected yet')
       return
     self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value)
-    
+    self.upDateInsertionLength(self.zDistance2Target,1)
 
   def onDefineZFrame(self):
     self.logic.positionTemplate(self.zFrameSelector.currentNode())
@@ -535,8 +534,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
             self.zDistance2Target = self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
             self.upDateInsertionLength(self.zDistance2Target,0)
         else:
-          self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
-        for r in range(nOfRows):         
+            self.zDistance2Target = self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
+            self.upDateInsertionLength(self.zDistance2Target, 1)
+        for r in range(nOfRows):
             self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,3).setForeground(qt.QColor(1,1,1))
@@ -553,14 +553,23 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         slicer.util.errorDisplay("No target selected")
 
   def upDateInsertionLength(self,ins,type):
-    if type == 0:
+    if type == 0 and ins > 0:
       self.insertion1.setText(str(int(ins + DIM1)) + "mm")
       self.insertion2.setText(str(int(ins + DIM2)) + "mm")
       self.insertion3.setText(str(int(ins + DIM3)) + "mm")
       self.insertion4.setText(str(int(ins + DIM4)) + "mm")
       self.insertion5.setText(str(int(ins + DIM5)) + "mm")
-    elif type == 1:
-      print("TODO angulation.")
+    elif type == 1 and ins > 0:
+      alpha = deg2rad*self.angleXWidget.value
+      beta = deg2rad*self.angleYWidget.value
+      ins = ins/np.cos(alpha)
+      ins = ins/np.cos(beta)
+      print(ins)
+      self.insertion1.setText(str(int(ins + DIM1)) + "mm")
+      self.insertion2.setText(str(int(ins + DIM2)) + "mm")
+      self.insertion3.setText(str(int(ins + DIM3)) + "mm")
+      self.insertion4.setText(str(int(ins + DIM4)) + "mm")
+      self.insertion5.setText(str(int(ins + DIM5)) + "mm")
 
 #
 # PathPlannerLogic
@@ -620,7 +629,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def setzFrameVisibility(self,param):
     self.zFrameModelNode.SetDisplayVisibility(param)    
 
-
   def updatePoints(self,path_points,distance_to_zFrame,angleX,angleY):
     _point1 = [0.0, 0.0, 0.0]
     _point2 = [0.0, 0.0, 0.0]
@@ -655,7 +663,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
     #destNode.GetDisplayNode().SetVisibility(True)
 
-
   def sendMove(self):
     try:
       self.moveText = slicer.util.getNode('MOVE')
@@ -673,7 +680,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     else:
       print(' Connection not stablished, check OpenIGTLink -')
       return False
-
 
   def sendInit(self):
     try:
@@ -693,7 +699,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       print(' Connection not stablished, check OpenIGTLink -')
       return False
 
-
   def sendReconnect(self):
     try:
       self.ReconnectText = slicer.util.getNode('SERIAL')
@@ -711,8 +716,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     else:
       print(' Connection not stablished, check OpenIGTLink -')
       return False
-
-
 
   def sendAngle(self,angleTransformation,sliderX,sliderY):
 
@@ -738,7 +741,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
  #     e = sys.exc_info()
       print('- Check openIGTLink connection-')
       return False
-
 
   def sendTarget(self,targetTransformation,ras_target,sliderX,sliderY):
     X = -sliderX.value
@@ -768,8 +770,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       print(e)
       print('- Check openIGTLink connection-')
       return False
-
-
 
   def sendZFrame(self,zFrame):
 
@@ -802,8 +802,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       self.cnode.Start()
     
     return True
-
-    
 
   def createModels(self,labelMapNode, modelHierarchyNode):
 
@@ -984,7 +982,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     print(target)
     return entry
 
-
   def path(self,angleXWidget, angleYWidget,selected_target,labelMapNode,zFrameTransform):
 
     mtx = vtk.vtkMatrix4x4()
@@ -1003,8 +1000,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     mtx.MultiplyPoint(_input,center_z)
     
     zdist = target_z[2] #add 100, but we need to remove that.
-
-    print("here")
 
     try:
       path_points = slicer.util.getNode('path')
@@ -1028,15 +1023,13 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     count = 0
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
-    print("here 2")
+
     if check == 1 or check == 2:
       center_z = self.findNewCenter(entry_z,center_z,target_z,zdist,check)
       _diff_R = -(zdist*(center_z[0]-target_z[0]))/(center_z[2]-target_z[2])
       _diff_A = -(zdist*(center_z[1]-target_z[1]))/(center_z[2]-target_z[2])
       entry_z = [target_z[0]+_diff_R, target_z[1]+_diff_A, target_z[2]-zdist, 1.0]       
     check = self.checkKinematics(entry_z,center_z,target_z,zdist)
-
-
 
     entry = [0.0, 0.0, 0.0, 1]
     center = [0.0, 0.0, 0.0, 1]
@@ -1059,7 +1052,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
     destNode.SetDisplayVisibility(True) 
 
-
     try:
       modelDisplay = slicer.util.getNode('displayPath')
       modelDisplay.SetColor(0,1,0)
@@ -1069,7 +1061,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       modelDisplay.SetColor(0,1,0)
       slicer.mrmlScene.AddNode(modelDisplay)
 
-
     modelDisplay.SetSliceIntersectionVisibility(True)
     modelDisplay.SetSliceIntersectionThickness(3)
     modelDisplay.SetVisibility(True)
@@ -1078,8 +1069,9 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     angleXWidget.value = -np.arcsin((center[0]-selected_target[0])/(center[2]-selected_target[2]))*(180/3.14)
     angleYWidget.value = -np.arcsin((center[1]-selected_target[1])/(center[2]-selected_target[2]))*(180/3.14)
 
-    red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
-    red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
+#    red_logic = slicer.app.layoutManager().sliceWidget("Red").sliceLogic()
+#    red_logic.GetSliceCompositeNode().SetBackgroundVolumeID(slicer.util.getNode('*PROSTATE*').GetID())
+    return zdist
 
 
   def findNewCenter(self,entry,center,target,zdist,case):
