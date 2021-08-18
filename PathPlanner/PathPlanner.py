@@ -12,6 +12,11 @@ import time
 # PathPlanner
 #
 
+
+##
+Test = "test if the new token is working"
+##
+
 # dimentions from the center of the RCM to the edge of the needle guide:
 DIM1 = 54.5
 DIM2 = 49.5
