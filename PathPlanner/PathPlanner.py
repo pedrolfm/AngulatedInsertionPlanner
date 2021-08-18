@@ -12,11 +12,6 @@ import time
 # PathPlanner
 #
 
-
-##
-Test = "test if the new token is working"
-##
-
 # dimentions from the center of the RCM to the edge of the needle guide:
 DIM1 = 54.5
 DIM2 = 49.5
@@ -27,7 +22,7 @@ DIM5 = 34.5
 deg2rad = 3.14/180.0
 
 #translation limits of Smart Template
-LIMITS = [-25,25,-20,40]
+LIMITS = [-25,25,-30,30]
 
 class PathPlanner(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
@@ -516,7 +511,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     except:
       print('No path selected yet')
       return
-    self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value)
+    self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
     self.upDateInsertionLength(self.zDistance2Target,1)
 
   def onDefineZFrame(self):
@@ -634,7 +629,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
   def setzFrameVisibility(self,param):
     self.zFrameModelNode.SetDisplayVisibility(param)    
 
-  def updatePoints(self,path_points,distance_to_zFrame,angleX,angleY):
+  def updatePoints(self,path_points,distance_to_zFrame,angleX,angleY,zFrameTransform):
     _point1 = [0.0, 0.0, 0.0]
     _point2 = [0.0, 0.0, 0.0]
     _point3 = [0.0, 0.0, 0.0]
@@ -648,12 +643,14 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     _point3[1] = _point1[1] + distance_to_zFrame * np.sin(_angleY)
     _point3[2] = _point1[2] - distance_to_zFrame
 
+
     _point2[0] = _point1[0] + distance_to_zFrame/2.0 * np.sin(_angleX)
     _point2[1] = _point1[1] + distance_to_zFrame/2.0 * np.sin(_angleY)
     _point2[2] = _point1[2] - distance_to_zFrame/2.0
 
     path_points.SetNthFiducialPosition(1, _point2[0], _point2[1], _point2[2])
     path_points.SetNthFiducialPosition(2, _point3[0], _point3[1], _point3[2])
+
 
 
     try:
@@ -667,6 +664,28 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     markupsToModel = slicer.modules.markupstomodel.logic()
     markupsToModel.UpdateClosedSurfaceModel(path_points, destNode, True)
     #destNode.GetDisplayNode().SetVisibility(True)
+
+    mtx = vtk.vtkMatrix4x4()
+    mtx_input = vtk.vtkMatrix4x4()
+    zFrameTransform.GetMatrixTransformToWorld(mtx_input)
+    mtx = self.transformZframe(mtx_input)
+
+    mtx.Invert()
+    _input = [_point3[0], _point3[1], _point3[2], 1]
+    entry_z = [0.0, 0.0, 0.0, 1]
+    mtx.MultiplyPoint(_input,entry_z)
+    print(entry_z)
+    self.setColorPath(entry_z)
+
+
+  def setColorPath(self,entry):
+    destNode = slicer.util.getNode('pathModel')
+    if entry[0] < LIMITS[0] or entry[0] > LIMITS[1] or entry[1] < LIMITS[2] or entry[1] > LIMITS[3]:
+      destNode.GetDisplayNode().SetColor(1, 0, 0)
+    else:
+      destNode.GetDisplayNode().SetColor(0, 1, 0)
+
+
 
   def sendMove(self):
     try:
@@ -748,8 +767,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
       return False
 
   def sendTarget(self,targetTransformation,ras_target,sliderX,sliderY):
-    X = sliderX.value
-    Y = sliderY.value
+    X = -sliderX.value
+    Y = -sliderY.value
     try:
       vTransform = vtk.vtkTransform()
       vTransform.Translate(ras_target[0],ras_target[1],ras_target[2]) 
@@ -890,6 +909,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     target_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,target_z)
 
+    self.target_z = target_z
+
     zdist = target_z[2] #add 100, but we need to remove that.
     print("====")
     print(selected_target)
@@ -999,6 +1020,8 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     _input = [selected_target[0], selected_target[1], selected_target[2], 1]
     target_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,target_z)
+
+    self.target_z = target_z
 
     _input = [center[0], center[1], center[2], 1]
     center_z = [0.0, 0.0, 0.0, 1]
