@@ -678,6 +678,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.setColorPath(entry_z)
 
 
+#Just test the new token...
   def setColorPath(self,entry):
     destNode = slicer.util.getNode('pathModel')
     if entry[0] < LIMITS[0] or entry[0] > LIMITS[1] or entry[1] < LIMITS[2] or entry[1] > LIMITS[3]:
