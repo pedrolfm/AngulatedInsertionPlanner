@@ -426,11 +426,43 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
           self.footswitchStatus.setText("Footswitch OFF")
           self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
-            
+        try:
+          tempStatus2 = slicer.util.getNode('statusTarget')
+          temp = tempString1.GetText()
+          targetValues = temp.split(" - ")
+          self.targetStatus.setText(targetValues[0])
+          self.angleStatus.setText(targetValues[1])
+
+        # mtxTemp = vtk.vtkMatrix4x4()
+         # tempStatus2.GetMatrixTransformToParent(mtxTemp)
+         # temp = "(" + str(int(mtxTemp.GetElement(0, 3))) + ", " + str(int(mtxTemp.GetElement(1, 3))) + ", " + str(int(
+         #   mtxTemp.GetElement(2, 3))) + ")"
+         # self.targetStatus.setText(temp)
+         # self.targetStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+         # ang = self.getAngles(mtxTemp)
+         # temp = "(" + str(int(ang[0])) + ", " + str(int(ang[1])) + ")"
+         # self.angleStatus.setText(temp)
+         # self.angleStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+        except:
+          self.targetStatus.setText("No Controller connection")
+          self.targetStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+          self.angleStatus.setText("No Controller connection")
+          self.angleStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
     except:
       self.connectionStatus.setText("IGTL - OFF")
-      
+
+
     qt.QTimer.singleShot(2000, self.onTimeout)
+
+
+  def getAngles(self,mtx):
+    vTransform = vtk.vtkTransform()
+    vTransform.SetMatrix(mtx)
+    X = [0.0, 0.0, 0.0]
+    vTransform.GetOrientation(X)
+    return X
+
+
 
   def onzFrameButton(self):
     if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
@@ -678,14 +710,12 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.setColorPath(entry_z)
 
 
-#Just test the new token...
   def setColorPath(self,entry):
     destNode = slicer.util.getNode('pathModel')
     if entry[0] < LIMITS[0] or entry[0] > LIMITS[1] or entry[1] < LIMITS[2] or entry[1] > LIMITS[3]:
       destNode.GetDisplayNode().SetColor(1, 0, 0)
     else:
       destNode.GetDisplayNode().SetColor(0, 1, 0)
-
 
 
   def sendMove(self):
