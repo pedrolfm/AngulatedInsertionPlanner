@@ -428,22 +428,15 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           self.footswitchStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
         try:
           tempStatus2 = slicer.util.getNode('statusTarget')
-          temp = tempString1.GetText()
+          temp = tempStatus2.GetText()
+          print(temp)
           targetValues = temp.split(" - ")
           self.targetStatus.setText(targetValues[0])
+          self.targetStatus.setStyleSheet("background-color: green;border: 1px solid black;")  
           self.angleStatus.setText(targetValues[1])
-
-        # mtxTemp = vtk.vtkMatrix4x4()
-         # tempStatus2.GetMatrixTransformToParent(mtxTemp)
-         # temp = "(" + str(int(mtxTemp.GetElement(0, 3))) + ", " + str(int(mtxTemp.GetElement(1, 3))) + ", " + str(int(
-         #   mtxTemp.GetElement(2, 3))) + ")"
-         # self.targetStatus.setText(temp)
-         # self.targetStatus.setStyleSheet("background-color: green;border: 1px solid black;")
-         # ang = self.getAngles(mtxTemp)
-         # temp = "(" + str(int(ang[0])) + ", " + str(int(ang[1])) + ")"
-         # self.angleStatus.setText(temp)
-         # self.angleStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+          self.angleStatus.setStyleSheet("background-color: green;border: 1px solid black;")  
         except:
+          print("stop here")
           self.targetStatus.setText("No Controller connection")
           self.targetStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
           self.angleStatus.setText("No Controller connection")
@@ -852,7 +845,7 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     except:
       self.cnode = slicer.vtkMRMLIGTLConnectorNode()
       slicer.mrmlScene.AddNode(self.cnode)
-      self.cnode.SetTypeServer(18944)
+      self.cnode.SetTypeClient('192.168.7.2',18944)
       self.cnode.SetName("OIGTL")
       self.cnode.Start()
     
