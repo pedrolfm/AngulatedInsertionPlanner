@@ -380,6 +380,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     statusFormLayout.addWidget(self.USLabel1,1,3)
     statusFormLayout.addWidget(self.USLabel2,1,2)
 
+    layoutManager = slicer.app.layoutManager()
+    self.redLogic = layoutManager.sliceWidget("Red").sliceLogic()
+    self.greenLogic = layoutManager.sliceWidget("Green").sliceLogic()
+    self.yellowLogic = layoutManager.sliceWidget("Yellow").sliceLogic()
+
+
     self.logic.loadzFrameModel()
 
     # Add vertical spacer
@@ -576,6 +582,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.targetTable.item(row,1).setBackground(qt.QColor(255,100,100))
         self.targetTable.item(row,2).setBackground(qt.QColor(255,100,100))
         self.targetTable.item(row,3).setBackground(qt.QColor(255,100,100))
+
+        
+        # Print current slice offset position
+        print(self.selectedTarget)
+        self.redLogic.SetSliceOffset(self.selectedTarget[2])
+        self.greenLogic.SetSliceOffset(self.selectedTarget[1])
+        self.yellowLogic.SetSliceOffset(-self.selectedTarget[0])
+
     except:
         slicer.util.errorDisplay("No target selected")
 
