@@ -651,7 +651,9 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def loadzFrameModel(self):
 
-    _, self.zFrameModelNode = slicer.util.loadModel('/Users/pedro/Projects/AngulationPlanner/AngulatedInsertionPlanner/PathPlanner/Resources/templateLimits.vtk', returnNode=True)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    print(dir_path)
+    _, self.zFrameModelNode = slicer.util.loadModel(dir_path+"/Resources/templateLimits.vtk", returnNode=True)
     slicer.mrmlScene.AddNode(self.zFrameModelNode)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionVisibility(False)
     self.zFrameModelNode.GetDisplayNode().SetSliceIntersectionThickness(3)
