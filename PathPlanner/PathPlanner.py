@@ -8,6 +8,8 @@ import numpy as np
 import sys
 import time
 
+
+AUTOMATIC_PATH = False
 #
 # PathPlanner
 #
@@ -555,7 +557,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.angleXWidget.value = 0.0
         self.angleYWidget.value = 0.0
         nOfRows = self.targetTable.rowCount
-        if self.segmentationSelector.currentNode() == None:
+        if not AUTOMATIC_PATH:
             self.zDistance2Target = self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
             self.upDateInsertionLength(self.zDistance2Target,0)
         else:
