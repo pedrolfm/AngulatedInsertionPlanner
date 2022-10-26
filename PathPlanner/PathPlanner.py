@@ -464,7 +464,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     return X
 
 
-
   def onzFrameButton(self):
     if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
       self.zFrameStatus.setText("ZFrame sent")
