@@ -174,7 +174,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleXWidget.maximum = 20
     self.angleXWidget.value = 0.0
     self.angleXWidget.setToolTip("needle guide angulation")
-    angulationFormLayout.addRow("Angle 1", self.angleXWidget)
+    angulationFormLayout.addRow("Coronal", self.angleXWidget)
 
     self.angleYWidget = ctk.ctkSliderWidget()
     self.angleYWidget.singleStep = 1
@@ -182,7 +182,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleYWidget.maximum = 20
     self.angleYWidget.value = 0.0
     self.angleYWidget.setToolTip("needle guide angulation")
-    angulationFormLayout.addRow("Angle 2", self.angleYWidget)
+    angulationFormLayout.addRow("Sagittal", self.angleYWidget)
 
     # connections
     self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
@@ -395,7 +395,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.connectionStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - WAIT")
       elif self.igtl.GetState() == 2:
-        self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+        self.connectionStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - ON")
         try:
           #get the motorPosition
@@ -420,7 +420,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           elif temp == "FTSW OFF":
             self.galilStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
           elif temp == "FTSW ON":
-            self.galilStatus.setStyleSheet("background-color: green;border: 1px solid black;")           
+            self.galilStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")           
         except:
           self.galilStatus.setText("No Controller connection")
           self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
@@ -432,9 +432,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           print(temp)
           targetValues = temp.split(" - ")
           self.targetStatus.setText(targetValues[0])
-          self.targetStatus.setStyleSheet("background-color: green;border: 1px solid black;")  
+          self.targetStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
           self.angleStatus.setText(targetValues[1])
-          self.angleStatus.setStyleSheet("background-color: green;border: 1px solid black;")  
+          self.angleStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
         except:
           print("stop here")
           self.targetStatus.setText("No Controller connection")
@@ -460,7 +460,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onzFrameButton(self):
     if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
       self.zFrameStatus.setText("ZFrame sent")
-      self.zFrameStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+      self.zFrameStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
       print('- zFrame sent -\n')
     else:
       print('- zFrame NOT sent -\n')
@@ -517,7 +517,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onOpenIGTL(self):
     if self.logic.openConnection():
-      self.connectionStatus.setStyleSheet("background-color: green;border: 1px solid black;")
+      self.connectionStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
       self.connectionStatus.setText("OpenIGTL")
       self.zFrameButton.enabled = True
       self.sendTargetButton.enabled = True
