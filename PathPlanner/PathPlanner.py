@@ -537,13 +537,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onSliderChange(self):
-
     try:
       path_points = slicer.util.getNode('path')
     except:
       print('No path selected yet')
       return
-    self.logic.updatePoints(path_points, 100.0,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
+    self.logic.updatePoints(path_points, self.zDistance2Target,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
     self.upDateInsertionLength(self.zDistance2Target,1)
 
   def onDefineZFrame(self):
@@ -564,10 +563,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         nOfRows = self.targetTable.rowCount
         if not AUTOMATIC_PATH:
             self.zDistance2Target = self.logic.pathStraight(self.selectedTarget,self.zFrameSelector.currentNode())
-            self.upDateInsertionLength(self.zDistance2Target,0)
+            self.upDateInsertionLength(self.zDistance2Target,0) #type 0 is straight insertion
         else:
             self.zDistance2Target = self.logic.path(self.angleXWidget, self.angleYWidget,self.selectedTarget,self.segmentationSelector.currentNode(),self.zFrameSelector.currentNode())
-            self.upDateInsertionLength(self.zDistance2Target, 1)
+            self.upDateInsertionLength(self.zDistance2Target, 1) #type 1 is angulated
         for r in range(nOfRows):
             self.targetTable.item(r,1).setForeground(qt.QColor(1,1,1))
             self.targetTable.item(r,2).setForeground(qt.QColor(1,1,1))
@@ -587,7 +586,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         print(self.selectedTarget)
         self.redLogic.SetSliceOffset(self.selectedTarget[2])
         self.greenLogic.SetSliceOffset(self.selectedTarget[1])
-        self.yellowLogic.SetSliceOffset(-self.selectedTarget[0])
+        self.yellowLogic.SetSliceOffset(self.selectedTarget[0])
 
     except:
         slicer.util.errorDisplay("No target selected")
