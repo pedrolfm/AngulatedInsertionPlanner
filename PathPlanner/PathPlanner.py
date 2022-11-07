@@ -170,14 +170,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     angulationFormLayout = qt.QFormLayout(angulationCollapsibleButton)
 
-    self.angleXWidget = ctk.ctkSliderWidget()
-    self.angleXWidget.singleStep = 1
-    self.angleXWidget.minimum = -20
-    self.angleXWidget.maximum = 20
-    self.angleXWidget.value = 0.0
-    self.angleXWidget.setToolTip("needle guide angulation")
-    angulationFormLayout.addRow("Coronal", self.angleXWidget)
-
     self.angleYWidget = ctk.ctkSliderWidget()
     self.angleYWidget.singleStep = 1
     self.angleYWidget.minimum = -20
@@ -186,9 +178,44 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleYWidget.setToolTip("needle guide angulation")
     angulationFormLayout.addRow("Sagittal", self.angleYWidget)
 
+    self.angleXWidget = ctk.ctkSliderWidget()
+    self.angleXWidget.singleStep = 1
+    self.angleXWidget.minimum = -20
+    self.angleXWidget.maximum = 20
+    self.angleXWidget.value = 0.0
+    self.angleXWidget.setToolTip("needle guide angulation")
+    angulationFormLayout.addRow("Coronal", self.angleXWidget)    
+    
+    #
+    # replan Area
+    #
+    replanCollapsibleButton = ctk.ctkCollapsibleButton()
+    replanCollapsibleButton.text = "Replan target"
+    self.layout.addWidget(replanCollapsibleButton)
+
+    replanFormLayout = qt.QFormLayout(replanCollapsibleButton)
+
+    self.replanXWidget = ctk.ctkSliderWidget()
+    self.replanXWidget.singleStep = 1
+    self.replanXWidget.minimum = -20
+    self.replanXWidget.maximum = 20
+    self.replanXWidget.value = 0.0
+    self.replanXWidget.setToolTip("Target L-R")
+    replanFormLayout.addRow("L-R", self.replanXWidget)
+
+    self.replanYWidget = ctk.ctkSliderWidget()
+    self.replanYWidget.singleStep = 1
+    self.replanYWidget.minimum = -20
+    self.replanYWidget.maximum = 20
+    self.replanYWidget.value = 0.0
+    self.replanYWidget.setToolTip("Target A-P")
+    replanFormLayout.addRow("A-P", self.replanYWidget)
+    
     # connections
     self.angleXWidget.connect('valueChanged(double)', self.onSliderChange)
     self.angleYWidget.connect('valueChanged(double)', self.onSliderChange)
+    self.replanXWidget.connect('valueChanged(double)', self.onFineTunning)
+    self.replanYWidget.connect('valueChanged(double)', self.onFineTunning)
     self.selectTarget.connect('clicked(bool)', self.onSelectTarget)
     self.zFrameSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onDefineZFrame)
     self.zFrameSelector.connect("nodeActivated(vtkMRMLNode*)", self.onDefineZFrame)
@@ -545,6 +572,21 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.logic.updatePoints(path_points, self.zDistance2Target,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
     self.upDateInsertionLength(self.zDistance2Target,1)
 
+  def onFineTunning(self):
+    try:
+      targets = slicer.util.getNode('intraopTargets')
+      if not targets.GetNthMarkupLabel(1):
+          target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
+      targets.SetNthFiducialLabel(1, "replan")
+    except:
+      print('No Targets')
+      return
+    print("here")
+    targets.SetNthFiducialPosition(1, 20, -30, 80)
+
+
+
+
   def onDefineZFrame(self):
     self.logic.positionTemplate(self.zFrameSelector.currentNode())
     print("Position tamplate limits")
@@ -553,6 +595,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     slicer.util.selectModule('Editor')
   
   def onSelectTarget(self):
+    slicer.util.getNode("vtkMRMLSliceNodeRed").SetOrientation("Axial")
+    slicer.util.getNode("vtkMRMLSliceNodeGreen").SetOrientation("Sagittal")
+    slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Coronal")
     try:
         self.selectedTarget = [0.0,0.0,0.0];
         row = self.targetTable.currentItem().row()
@@ -584,9 +629,13 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         
         # Print current slice offset position
         print(self.selectedTarget)
+        slicer.util.getNode("vtkMRMLSliceNodeRed").SetOrientation("Axial")
+        slicer.util.getNode("vtkMRMLSliceNodeGreen").SetOrientation("Sagittal")
+        slicer.util.getNode("vtkMRMLSliceNodeYellow").SetOrientation("Coronal")
+        print("repositioning views")
         self.redLogic.SetSliceOffset(self.selectedTarget[2])
-        self.greenLogic.SetSliceOffset(self.selectedTarget[1])
-        self.yellowLogic.SetSliceOffset(self.selectedTarget[0])
+        self.greenLogic.SetSliceOffset(self.selectedTarget[0])
+        self.yellowLogic.SetSliceOffset(self.selectedTarget[1])
 
     except:
         slicer.util.errorDisplay("No target selected")
@@ -952,10 +1001,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     self.target_z = target_z
 
     zdist = target_z[2] #add 100, but we need to remove that.
-    print("====")
-    print(selected_target)
-    print(target_z)
-    print("StraightPath...")
     try:
       path_points = slicer.util.getNode('path')
     except slicer.util.MRMLNodeNotFoundException:
@@ -974,8 +1019,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
     entry_z = [target_z[0], target_z[1], 0, 1.0]
 
-    print(target_z)
-    print("StraightPath...2")
     count = 0
     check = self.checkKinematics(entry_z,center_z,target_z,zdist) 
     if check == 1 or check == 2:
