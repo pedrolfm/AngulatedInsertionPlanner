@@ -422,6 +422,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onTimeout(self):
     try:
+      self.onReloadTarget()
       self.igtl = slicer.util.getNode('OIGTL*')
       if self.igtl.GetState() == 0:
         self.connectionStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
@@ -581,9 +582,25 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     except:
       print('No Targets')
       return
-    print("here")
-    targets.SetNthFiducialPosition(1, 20, -30, 80)
-
+    if self.selectedTarget:
+        self.currentTarget = [self.selectedTarget[0]+self.replanXWidget.value, self.selectedTarget[1]+self.replanYWidget.value, self.selectedTarget[2]];
+        targets.SetNthFiducialPosition(1, self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
+        path_points = slicer.util.getNode('path')
+        path_points.SetNthFiducialPosition(0,self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
+        self.logic.updatePoints(path_points, self.zDistance2Target,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
+        self.upDateInsertionLength(self.zDistance2Target,1)
+  #      path_points = slicer.util.getNode('path')
+  #      _point1 = [0.0, 0.0, 0.0]
+  #      _point2 = [0.0, 0.0, 0.0]
+  #      _point3 = [0.0, 0.0, 0.0]
+  #      path_points.GetNthFiducialPosition(0, _point1)
+  #      path_points.GetNthFiducialPosition(1, _point2)
+  #      path_points.GetNthFiducialPosition(2, _point3)
+  #      path_points.SetNthFiducialPosition(1, _point2[0]+self.replanXWidget.value, _point2[1]+self.replanYWidget.value, _point2[2])
+  #      path_points.SetNthFiducialPosition(2, _point3[0]+self.replanXWidget.value, _point3[1]+self.replanYWidget.value, _point3[2])
+  #      path_points.SetNthFiducialPosition(0, _point1[0]+self.replanXWidget.value, _point1[1]+self.replanYWidget.value, _point1[2])
+  #      destNode = slicer.util.getNode('pathModel')
+  #      markupsToModel = slicer.modules.markupstomodel.logic().UpdateClosedSurfaceModel(path_points, destNode, True)
 
 
 
@@ -741,8 +758,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     path_points.SetNthFiducialPosition(1, _point2[0], _point2[1], _point2[2])
     path_points.SetNthFiducialPosition(2, _point3[0], _point3[1], _point3[2])
 
-
-
     try:
       destNode = slicer.util.getNode('pathModel')
             
@@ -764,7 +779,6 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     _input = [_point3[0], _point3[1], _point3[2], 1]
     entry_z = [0.0, 0.0, 0.0, 1]
     mtx.MultiplyPoint(_input,entry_z)
-    print(entry_z)
     self.setColorPath(entry_z)
 
 
