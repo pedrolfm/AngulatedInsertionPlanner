@@ -575,10 +575,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onFineTunning(self):
     try:
-      targets = slicer.util.getNode('intraopTargets')
-      if not targets.GetNthMarkupLabel(1):
-          target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
-      targets.SetNthFiducialLabel(1, "replan")
+      targets = slicer.util.getNode('IntraopTargets')
+      print(targets)
+      #if not targets.GetNthMarkupLabel("target"):
+      #    target_fiducial = slicer.modules.markups.logic().AddFiducial(0, 0, 0)
+      targets.SetNthFiducialLabel(0, "replaned")
     except:
       print('No Targets')
       return
