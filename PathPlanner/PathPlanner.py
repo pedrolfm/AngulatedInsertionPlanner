@@ -302,12 +302,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendMoveButton.enabled = False
 
     # Init Button
-    self.sendInitButton = qt.QPushButton("Init ST")
+    self.sendInitButton = qt.QPushButton("Homing")
     self.sendInitButton.toolTip = "initialization"
     self.sendInitButton.enabled = False
 
     # Reconnect to galil
-    self.sendReconnectButton = qt.QPushButton("Reconnect")
+    self.sendReconnectButton = qt.QPushButton("Galil")
     self.sendReconnectButton.toolTip = "Reconect to Galil serial comunication"
     self.sendReconnectButton.enabled = False
 
@@ -340,22 +340,29 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.angleStatus.setText("No connection")
     self.angleStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
 
+    self.deviceStatus = qt.QLabel()
+    self.deviceStatus.setText(" -- ")
+    self.deviceStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+
+
     self.layout.addWidget(ConnectionCollapsibleButton)
 
     ConnectionFormLayout.addWidget(self.openIGTL,0,1)
-    ConnectionFormLayout.addWidget(self.connectionStatus,0,2)
-    ConnectionFormLayout.addWidget(self.galilStatus,0,3)
+    ConnectionFormLayout.addWidget(self.connectionStatus,1,1)
+    ConnectionFormLayout.addWidget(self.galilStatus,1,2)
 
-    ConnectionFormLayout.addWidget(self.zFrameButton,1,1)
-    ConnectionFormLayout.addWidget(self.sendTargetButton,1,2)
-    ConnectionFormLayout.addWidget(self.sendReconnectButton,1,3)
+    ConnectionFormLayout.addWidget(self.zFrameButton,2,1)
+    ConnectionFormLayout.addWidget(self.sendTargetButton,2,2)
+    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,2)
 
-    ConnectionFormLayout.addWidget(self.zFrameStatus,2,1)
-    ConnectionFormLayout.addWidget(self.targetStatus,2,2)
-    ConnectionFormLayout.addWidget(self.angleStatus,2,3)
+    ConnectionFormLayout.addWidget(self.zFrameStatus,3,1)
+    ConnectionFormLayout.addWidget(self.targetStatus,3,2)
+    ConnectionFormLayout.addWidget(self.angleStatus,3,3)
 
-    ConnectionFormLayout.addWidget(self.sendMoveButton,3,2)
-    ConnectionFormLayout.addWidget(self.sendInitButton,3,1)
+    ConnectionFormLayout.addWidget(self.sendMoveButton,2,3)
+    ConnectionFormLayout.addWidget(self.sendInitButton,0,3)
+    ConnectionFormLayout.addWidget(self.deviceStatus, 1, 3)
+
 
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
@@ -465,18 +472,35 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           tempStatus2 = slicer.util.getNode('statusTarget')
           temp = tempStatus2.GetText()
-          print(temp)
           targetValues = temp.split(" - ")
           self.targetStatus.setText(targetValues[0])
           self.targetStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
           self.angleStatus.setText(targetValues[1])
           self.angleStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
         except:
-          print("stop here")
           self.targetStatus.setText("No Controller connection")
           self.targetStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
           self.angleStatus.setText("No Controller connection")
           self.angleStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
+        try:
+          tempStatus3 = slicer.util.getNode('state')
+
+          if tempStatus3.GetText() == "idle":
+            self.deviceStatus.setText("Idle - waiting")
+            self.deviceStatus.setStyleSheet("background-color: lightblue;border: 1px solid black;")
+          if tempStatus3.GetText() == "footSwitch":
+            self.deviceStatus.setText("Press pedal!")
+            self.deviceStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
+          if tempStatus3.GetText() == "moveDone":
+            self.deviceStatus.setText("Mov. Done!")
+            self.deviceStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
+        except:
+          self.deviceStatus.setText("No connection")
+          self.deviceStatus.setStyleSheet("background-color: lightblue;border: 1px solid black;")
+
+
+
+
     except:
       self.connectionStatus.setText("IGTL - OFF")
 
