@@ -441,6 +441,16 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.connectionStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
         self.connectionStatus.setText("IGTL - ON")
         try:
+          tempState = slicer.util.getNode('state')
+          temp = tempState.GetText() 
+          self.deviceStatus.setText(temp)
+          if temp == "waiting":
+            self.deviceStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
+          if temp == "Moving":
+            self.deviceStatus.setStyleSheet("background-color: lightyellow;border: 1px solid black;")
+        except:
+          self.deviceStatus.setText("-")
+        try:
           #get the motorPosition
           tempString1 = slicer.util.getNode('motorPosition')
           temp = tempString1.GetText()
