@@ -550,9 +550,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       self.targetTable.setRowCount(nOfFiducials)
       for n in range(nOfFiducials):
           targets.GetNthFiducialPosition(n, ras_target)
-          self.targetTable.setItem(n,1, qt.QTableWidgetItem(str(ras_target[0])))
-          self.targetTable.setItem(n,2, qt.QTableWidgetItem(str(ras_target[1])))
-          self.targetTable.setItem(n,3, qt.QTableWidgetItem(str(ras_target[2])))
+          self.targetTable.setItem(n,1, qt.QTableWidgetItem(('%.1f' % ras_target[0])))
+          self.targetTable.setItem(n,2, qt.QTableWidgetItem(('%.1f' % ras_target[1])))
+          self.targetTable.setItem(n,3, qt.QTableWidgetItem(('%.1f' % ras_target[2])))
           self.targetTable.setItem(n,0, qt.QTableWidgetItem(targets.GetNthFiducialLabel(n)))
     except:
       print('- No target list? -\n')
@@ -619,7 +619,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       return
     if self.selectedTarget:
         self.currentTarget = [self.selectedTarget[0]+self.replanXWidget.value, self.selectedTarget[1]+self.replanYWidget.value, self.selectedTarget[2]];
-        targets.SetNthFiducialPosition(1, self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
+        targets.SetNthFiducialPosition(0, self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
         path_points = slicer.util.getNode('path')
         path_points.SetNthFiducialPosition(0,self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
         self.logic.updatePoints(path_points, self.zDistance2Target,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
