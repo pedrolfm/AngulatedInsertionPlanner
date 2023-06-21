@@ -282,6 +282,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.openIGTL.enabled = True
     #self.layout.addWidget(self.openIGTL)
 
+ 
+    # Connect Button
+    self.abort = qt.QPushButton("Abort")
+    self.abort.toolTip = "Stop movement"
+    self.abort.enabled = True 
     
     # zFrame Button
     self.zFrameButton = qt.QPushButton("zFrame")
@@ -344,26 +349,49 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.deviceStatus.setText(" -- ")
     self.deviceStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
 
+    self.label1 = qt.QLabel()
+    self.label1.setText("OpenIGTLink:")
+    self.label1.setStyleSheet("border: 1px solid black;")
+    
+    self.label2 = qt.QLabel()
+    self.label2.setText("Footswitch:")
+    self.label2.setStyleSheet("border: 1px solid black;")
+    
+    self.label3 = qt.QLabel()
+    self.label3.setText("Ready to move:")
+    self.label3.setStyleSheet("border: 1px solid black;")
+    
+
+    self.label4 = qt.QLabel()
+    self.label4.setText("No movement")
+    self.label4.setStyleSheet("background-color: white;border: 1px solid black;")
+    self.label4.setAlignment(0x0004)
 
     self.layout.addWidget(ConnectionCollapsibleButton)
 
     ConnectionFormLayout.addWidget(self.openIGTL,0,1)
-    ConnectionFormLayout.addWidget(self.connectionStatus,1,1)
-    ConnectionFormLayout.addWidget(self.galilStatus,1,2)
+    ConnectionFormLayout.addWidget(self.sendInitButton,0,3)   
+    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,2)    
+    
+    ConnectionFormLayout.addWidget(self.connectionStatus,3,1)  
+    ConnectionFormLayout.addWidget(self.galilStatus,3,2)
+    ConnectionFormLayout.addWidget(self.abort, 3, 3)  
+    
+    ConnectionFormLayout.addWidget(self.zFrameButton,4,1)
+    ConnectionFormLayout.addWidget(self.sendTargetButton,4,2)    
+    ConnectionFormLayout.addWidget(self.sendMoveButton,4,3)    
+    
 
-    ConnectionFormLayout.addWidget(self.zFrameButton,2,1)
-    ConnectionFormLayout.addWidget(self.sendTargetButton,2,2)
-    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,2)
+    ConnectionFormLayout.addWidget(self.targetStatus,5,2)
+    ConnectionFormLayout.addWidget(self.angleStatus,5,3)    
+    ConnectionFormLayout.addWidget(self.zFrameStatus,5,1)
 
-    ConnectionFormLayout.addWidget(self.zFrameStatus,3,1)
-    ConnectionFormLayout.addWidget(self.targetStatus,3,2)
-    ConnectionFormLayout.addWidget(self.angleStatus,3,3)
+    ConnectionFormLayout.addWidget(self.label1,1,1)
+    ConnectionFormLayout.addWidget(self.label2,1,2)
+    ConnectionFormLayout.addWidget(self.label3,1,3)
 
-    ConnectionFormLayout.addWidget(self.sendMoveButton,2,3)
-    ConnectionFormLayout.addWidget(self.sendInitButton,0,3)
-    ConnectionFormLayout.addWidget(self.deviceStatus, 1, 3)
-
-
+    ConnectionFormLayout.addWidget(self.label4,2,1,1,3)
+    
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
     self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
@@ -372,7 +400,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
-    
+    self.abort.connect('clicked(bool)', self.onAbort)
 
     qt.QTimer.singleShot(2000, self.onTimeout)
 
@@ -442,12 +470,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         self.connectionStatus.setText("IGTL - ON")
         try:
           tempState = slicer.util.getNode('state')
-          temp = tempState.GetText() 
-          self.deviceStatus.setText(temp)
-          if temp == "waiting":
+          temp = tempState.GetText()
+          print(temp)
+          if temp == "No":
+            self.deviceStatus.setText('No movement')
             self.deviceStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
-          if temp == "Moving":
-            self.deviceStatus.setStyleSheet("background-color: lightyellow;border: 1px solid black;")
+          if temp == "Press FS":
+            self.deviceStatus.setText(' * Press pedal *')
+            self.deviceStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
         except:
           self.deviceStatus.setText("-")
         try:
@@ -525,6 +555,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     vTransform.GetOrientation(X)
     return X
 
+  def onAbort(self):
+    self.logic.sendAbort()
+    print("stop motion")
 
   def onzFrameButton(self):
     if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
@@ -555,7 +588,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           self.targetTable.setItem(n,3, qt.QTableWidgetItem(('%.1f' % ras_target[2])))
           self.targetTable.setItem(n,0, qt.QTableWidgetItem(targets.GetNthFiducialLabel(n)))
     except:
-      print('- No target list? -\n')
+      return
 
   def onsendMoveButton(self):
     if self.logic.sendMove():
@@ -824,6 +857,24 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
     else:
       destNode.GetDisplayNode().SetColor(0, 1, 0)
 
+
+  def sendAbort(self):
+    try:
+      self.moveText = slicer.util.getNode('MOVE')
+    except:
+      self.moveText = slicer.vtkMRMLTextNode()
+      self.moveText.SetName("MOVE")
+      self.moveText.SetText("ABORT")
+      slicer.mrmlScene.AddNode(self.moveText)
+    if self.cnode.GetState() == 2:
+      self.cnode.RegisterOutgoingMRMLNode(self.moveText)
+      self.cnode.PushNode(self.moveText)
+      time.sleep(0.1)
+      self.cnode.UnregisterOutgoingMRMLNode(self.moveText)    
+      return True
+    else:
+      print(' Connection not stablished, check OpenIGTLink -')
+      return False
 
   def sendMove(self):
     try:
