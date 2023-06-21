@@ -286,7 +286,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     # Connect Button
     self.abort = qt.QPushButton("Abort")
     self.abort.toolTip = "Stop movement"
-    self.abort.enabled = True 
+    self.abort.enabled = False 
     
     # zFrame Button
     self.zFrameButton = qt.QPushButton("zFrame")
@@ -624,7 +624,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       self.zFrameButton.enabled = True
       self.sendTargetButton.enabled = True
       self.sendAngleButton.enabled = True
-      
+      self.abort.enabled = True
       self.sendInitButton.enabled = True
       self.sendReconnectButton.enabled = True
 
