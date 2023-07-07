@@ -146,17 +146,33 @@ class HomingWidget(ScriptedLoadableModuleWidget):
 
 
   def onApplyButton(self):
-    logic = HomingLogic()
-    if logic.checkConnection():
-      if logic.sendInitUS():
-        print('- Initialization code sent -\n')
+
+    dlg = qt.QMessageBox()
+    dlg.setWindowTitle("Alert!")
+    dlg.setText("Are the protective COVER and the NEEDLE GUIDE removed from the Smart Template? \n \n \n Click OK to proceed")
+    dlg.setStyleSheet("background-color: rgb(128, 0, 0);color: rgb(255, 255, 255);")
+    button = dlg.exec()
+ 
+    if button == qt.QMessageBox.Ok:
+      logic = HomingLogic()
+      if logic.checkConnection():
+        if logic.sendInitUS():
+          print('- Initialization code sent -\n')
+        else:
+          print('- Initialization code NOT sent -\n')
       else:
-        print('- Initialization code NOT sent -\n')
-    else:
-      print("No openIGTLink")
+        print("No openIGTLink")
 
 
   def onPiezoHomingButton(self):
+  
+    dlg = qt.QMessageBox()
+    dlg.setWindowTitle("Alert!")
+    dlg.setText("Are the protective COVER and the NEEDLE GUIDE removed from the Smart Template? \n Click OK to proceed")
+    button = dlg.exec()
+    #if button == qt.QMessageBox.Ok:
+    # print("cancel")
+    #  return
     logic = HomingLogic()
     horizontalPosition = self.cbh.currentText
     verticalPosition = self.cbv.currentText

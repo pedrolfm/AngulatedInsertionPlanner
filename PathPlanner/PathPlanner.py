@@ -471,7 +471,6 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           tempState = slicer.util.getNode('state')
           temp = tempState.GetText()
-          print(temp)
           if temp == "No":
             self.deviceStatus.setText('No movement')
             self.deviceStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
@@ -525,18 +524,18 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           tempStatus3 = slicer.util.getNode('state')
 
-          if tempStatus3.GetText() == "idle":
-            self.deviceStatus.setText("Idle - waiting")
-            self.deviceStatus.setStyleSheet("background-color: lightblue;border: 1px solid black;")
-          if tempStatus3.GetText() == "footSwitch":
-            self.deviceStatus.setText("Press pedal!")
-            self.deviceStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
-          if tempStatus3.GetText() == "moveDone":
-            self.deviceStatus.setText("Mov. Done!")
-            self.deviceStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
+          if tempStatus3.GetText() == "No":
+            self.label4.setText("Idle - waiting")
+            self.label4.setStyleSheet("background-color: lightblue;border: 1px solid black;")
+          if tempStatus3.GetText() == "Waiting movement":
+            self.label4.setText("Waiting movement - Press pedal!")
+            self.label4.setStyleSheet("background-color: yellow;border: 1px solid black;")
+          if tempStatus3.GetText() == "Movement done":
+            self.label4.setText("Mov. Done!")
+            self.label4.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
         except:
-          self.deviceStatus.setText("No connection")
-          self.deviceStatus.setStyleSheet("background-color: lightblue;border: 1px solid black;")
+          self.label4.setText("No connection")
+          self.label4.setStyleSheet("background-color: lightblue;border: 1px solid black;")
 
 
 
