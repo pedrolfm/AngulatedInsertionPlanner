@@ -533,6 +533,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           if tempStatus3.GetText() == "Movement done":
             self.label4.setText("Mov. Done!")
             self.label4.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
+          if tempStatus3.GetText() == "Movement aborted":
+            self.label4.setText("MOVEMENT ABORTED - send another target")
+            self.label4.setStyleSheet("background-color: pink;border: 1px solid black;")
         except:
           self.label4.setText("No connection")
           self.label4.setStyleSheet("background-color: lightblue;border: 1px solid black;")
@@ -859,10 +862,10 @@ class PathPlannerLogic(ScriptedLoadableModuleLogic):
 
   def sendAbort(self):
     try:
-      self.moveText = slicer.util.getNode('MOVE')
+      self.moveText = slicer.util.getNode('ABORT')
     except:
       self.moveText = slicer.vtkMRMLTextNode()
-      self.moveText.SetName("MOVE")
+      self.moveText.SetName("ABORT")
       self.moveText.SetText("ABORT")
       slicer.mrmlScene.AddNode(self.moveText)
     if self.cnode.GetState() == 2:
