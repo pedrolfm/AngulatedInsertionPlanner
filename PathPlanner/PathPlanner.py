@@ -369,9 +369,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     self.layout.addWidget(ConnectionCollapsibleButton)
 
-    ConnectionFormLayout.addWidget(self.openIGTL,0,1)
-    ConnectionFormLayout.addWidget(self.sendInitButton,0,3)   
-    ConnectionFormLayout.addWidget(self.sendReconnectButton,0,2)    
+    ConnectionFormLayout.addWidget(self.openIGTL,1,1)
+    ConnectionFormLayout.addWidget(self.sendInitButton,1,3)   
+    ConnectionFormLayout.addWidget(self.sendReconnectButton,1,2)    
     
     ConnectionFormLayout.addWidget(self.connectionStatus,3,1)  
     ConnectionFormLayout.addWidget(self.galilStatus,3,2)
@@ -386,11 +386,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     ConnectionFormLayout.addWidget(self.angleStatus,5,3)    
     ConnectionFormLayout.addWidget(self.zFrameStatus,5,1)
 
-    ConnectionFormLayout.addWidget(self.label1,1,1)
-    ConnectionFormLayout.addWidget(self.label2,1,2)
-    ConnectionFormLayout.addWidget(self.label3,1,3)
+    ConnectionFormLayout.addWidget(self.label1,2,1)
+    ConnectionFormLayout.addWidget(self.label2,2,2)
+    ConnectionFormLayout.addWidget(self.label3,2,3)
 
-    ConnectionFormLayout.addWidget(self.label4,2,1,1,3)
+    ConnectionFormLayout.addWidget(self.label4,0,1,1,3)
     
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
