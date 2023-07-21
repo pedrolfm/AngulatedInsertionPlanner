@@ -350,16 +350,15 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.deviceStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
 
     self.label1 = qt.QLabel()
-    self.label1.setText("OpenIGTLink:")
-    self.label1.setStyleSheet("border: 1px solid black;")
-    
+    self.label1.setText("    ")
+
     self.label2 = qt.QLabel()
-    self.label2.setText("Footswitch:")
-    self.label2.setStyleSheet("border: 1px solid black;")
+    self.label2.setText("   ")
+
     
     self.label3 = qt.QLabel()
-    self.label3.setText("Ready to move:")
-    self.label3.setStyleSheet("border: 1px solid black;")
+    self.label3.setText("   ")
+
     
 
     self.label4 = qt.QLabel()
@@ -370,28 +369,31 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.layout.addWidget(ConnectionCollapsibleButton)
 
     ConnectionFormLayout.addWidget(self.openIGTL,1,1)
-    ConnectionFormLayout.addWidget(self.sendInitButton,1,3)   
-    ConnectionFormLayout.addWidget(self.sendReconnectButton,1,2)    
-    
-    ConnectionFormLayout.addWidget(self.connectionStatus,3,1)  
-    ConnectionFormLayout.addWidget(self.galilStatus,3,2)
-    ConnectionFormLayout.addWidget(self.abort, 3, 3)  
-    
-    ConnectionFormLayout.addWidget(self.zFrameButton,4,1)
-    ConnectionFormLayout.addWidget(self.sendTargetButton,4,2)    
-    ConnectionFormLayout.addWidget(self.sendMoveButton,4,3)    
-    
+    ConnectionFormLayout.addWidget(self.connectionStatus, 1, 2)
+    ConnectionFormLayout.addWidget(self.sendReconnectButton, 1, 3)
+    ConnectionFormLayout.addWidget(self.galilStatus, 1, 4)
 
-    ConnectionFormLayout.addWidget(self.targetStatus,5,2)
-    ConnectionFormLayout.addWidget(self.angleStatus,5,3)    
-    ConnectionFormLayout.addWidget(self.zFrameStatus,5,1)
-
-    ConnectionFormLayout.addWidget(self.label1,2,1)
-    ConnectionFormLayout.addWidget(self.label2,2,2)
-    ConnectionFormLayout.addWidget(self.label3,2,3)
-
-    ConnectionFormLayout.addWidget(self.label4,0,1,1,3)
+    #ConnectionFormLayout.addWidget(self.sendReconnectButton,1,2)
     
+    #ConnectionFormLayout.addWidget(self.connectionStatus,3,1)
+    #ConnectionFormLayout.addWidget(self.galilStatus,3,2)
+    
+    ConnectionFormLayout.addWidget(self.zFrameButton,2,1)
+    ConnectionFormLayout.addWidget(self.zFrameStatus, 2, 2)
+
+    ConnectionFormLayout.addWidget(self.sendTargetButton,4,1)
+    ConnectionFormLayout.addWidget(self.targetStatus,4,2)
+    ConnectionFormLayout.addWidget(self.angleStatus,4,3)
+    ConnectionFormLayout.addWidget(self.sendMoveButton,4,4)
+
+    ConnectionFormLayout.addWidget(self.label1,3,1)
+    ConnectionFormLayout.addWidget(self.label2,3,2)
+    ConnectionFormLayout.addWidget(self.label3,3,3)
+
+    ConnectionFormLayout.addWidget(self.label4,0,1,1,4)
+    ConnectionFormLayout.addWidget(self.abort, 6, 3,1,2)
+    ConnectionFormLayout.addWidget(self.sendInitButton,6,1,1,2)
+
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
     self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
