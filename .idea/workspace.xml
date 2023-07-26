@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0c4e8e53-b8ff-488f-8fa6-1bdee1cddbd4" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Homing/Homing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Homing/Homing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PathPlanner/PathPlanner.py" beforeDir="false" afterPath="$PROJECT_DIR$/PathPlanner/PathPlanner.py" afterDir="false" />
-    </list>
+    <list default="true" id="0c4e8e53-b8ff-488f-8fa6-1bdee1cddbd4" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,7 +46,7 @@
     <session id="-990008207">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="2" />
+          <entry key="project.closed" value="3" />
           <entry key="project.open.time.6" value="1" />
           <entry key="project.open.time.8" value="2" />
           <entry key="project.open.time.92" value="1" />
@@ -59,33 +55,33 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="1213" />
+          <entry key="py" value="1503" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="1213" />
+          <entry key="Python" value="1503" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="1" />
+          <entry key="py" value="2" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Python" value="1" />
+          <entry key="Python" value="2" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/PathPlanner/PathPlanner.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="109">
-              <caret line="699" column="55" lean-forward="true" selection-start-line="699" selection-start-column="55" selection-end-line="699" selection-end-column="55" />
+            <state relative-caret-position="160">
+              <caret line="873" lean-forward="true" selection-start-line="873" selection-end-line="873" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
                 <element signature="e#22624#22755#0" />
@@ -104,10 +100,29 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/../CryoProbability/CryoAblationPlanning/Probability/Probability.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="484">
+              <caret line="318" column="8" selection-start-line="318" selection-start-column="8" selection-end-line="318" selection-end-column="8" />
+              <folding>
+                <element signature="e#0#14#0" expanded="true" />
+                <element signature="e#9077#10055#0" />
+                <element signature="e#10132#11625#0" />
+                <element signature="e#11702#12688#0" />
+                <element signature="e#14781#16177#0" />
+                <marker date="1690249692875" expanded="true" signature="10870:10871" ph="..." />
+                <marker date="1690249692875" expanded="true" signature="10870:10875" ph="..." />
+                <marker date="1690249692875" expanded="true" signature="14418:14425" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Homing/Homing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1935">
+            <state relative-caret-position="131">
               <caret line="134" column="39" selection-start-line="134" selection-start-column="39" selection-end-line="134" selection-end-column="39" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
@@ -122,6 +137,12 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>footswitchStatus</find>
+      <find>markup</find>
+      <find>path_points</find>
+      <find>GetNth</find>
+      <find>outputSelector</find>
+      <find>apply</find>
+      <find>getN</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -132,6 +153,7 @@
       <list>
         <option value="$PROJECT_DIR$/Homing/Homing.py" />
         <option value="$PROJECT_DIR$/PathPlanner/PathPlanner.py" />
+        <option value="$PROJECT_DIR$/../CryoProbability/CryoAblationPlanning/Probability/Probability.py" />
       </list>
     </option>
   </component>
@@ -142,8 +164,8 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1571" />
-    <option name="y" value="25" />
+    <option name="x" value="1547" />
+    <option name="y" value="40" />
     <option name="width" value="1770" />
     <option name="height" value="938" />
   </component>
@@ -217,7 +239,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1571" y="25" width="1770" height="938" extended-state="0" />
+    <frame x="1547" y="40" width="1770" height="938" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16956018" />
@@ -280,10 +302,21 @@
     <option name="LAST_COMMIT_MESSAGE" value="just testing the new token" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/Homing/Homing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="131">
+          <caret line="134" column="39" selection-start-line="134" selection-start-column="39" selection-end-line="134" selection-end-column="39" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+            <marker date="1689966403401" expanded="true" signature="4690:4694" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/PathPlanner/PathPlanner.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="109">
-          <caret line="699" column="55" lean-forward="true" selection-start-line="699" selection-start-column="55" selection-end-line="699" selection-end-column="55" />
+        <state relative-caret-position="160">
+          <caret line="873" lean-forward="true" selection-start-line="873" selection-end-line="873" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
             <element signature="e#22624#22755#0" />
@@ -301,13 +334,19 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Homing/Homing.py">
+    <entry file="file://$PROJECT_DIR$/../CryoProbability/CryoAblationPlanning/Probability/Probability.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1935">
-          <caret line="134" column="39" selection-start-line="134" selection-start-column="39" selection-end-line="134" selection-end-column="39" />
+        <state relative-caret-position="484">
+          <caret line="318" column="8" selection-start-line="318" selection-start-column="8" selection-end-line="318" selection-end-column="8" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <marker date="1689966403401" expanded="true" signature="4690:4694" ph="..." />
+            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#9077#10055#0" />
+            <element signature="e#10132#11625#0" />
+            <element signature="e#11702#12688#0" />
+            <element signature="e#14781#16177#0" />
+            <marker date="1690249692875" expanded="true" signature="10870:10871" ph="..." />
+            <marker date="1690249692875" expanded="true" signature="10870:10875" ph="..." />
+            <marker date="1690249692875" expanded="true" signature="14418:14425" ph="..." />
           </folding>
         </state>
       </provider>
