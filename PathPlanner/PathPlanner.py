@@ -7,6 +7,8 @@ import logging
 import numpy as np
 import sys
 import time
+import logging
+from datetime import datetime
 
 
 AUTOMATIC_PATH = False
@@ -59,6 +61,17 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.logic = PathPlannerLogic()
     # Instantiate and connect widgets ...
 
+    now = datetime.now()
+    dt_string = str(now.strftime("%d/%m/%Y %H:%M:%S"))
+    self.filename = "/Users/pedro/Documents/test-save.txt"
+    self.logfile = open(self.filename, 'w')
+    self.logfile.write("Log file for Smart Template Clinical Trials \n")
+    self.logfile.write('=========================== \n')
+    self.logfile.write('Today is ' + dt_string +"\n")
+    self.logfile.write('===========================' + "\n")
+
+    self.logfile.write('Path Planner Module reloaded' + "\n")
+    self.logfile.close()
     #
     # Parameters Area
     #
@@ -311,6 +324,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendInitButton.toolTip = "initialization"
     self.sendInitButton.enabled = False
 
+    # Biospy Button
+    self.biopsyButton = qt.QPushButton("Biopsy")
+    self.biopsyButton.toolTip = "biopsy taken?"
+    self.biopsyButton.enabled = True
+
     # Reconnect to galil
     self.sendReconnectButton = qt.QPushButton("Galil")
     self.sendReconnectButton.toolTip = "Reconect to Galil serial comunication"
@@ -394,11 +412,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     ConnectionFormLayout.addWidget(self.abort, 6, 3,1,2)
     ConnectionFormLayout.addWidget(self.sendInitButton,6,1,1,2)
 
+    ConnectionFormLayout.addWidget(self.biopsyButton, 7, 1, 1, 2)
+
     # connections
     self.openIGTL.connect('clicked(bool)', self.onOpenIGTL)
     self.zFrameButton.connect('clicked(bool)', self.onzFrameButton)
     self.sendTargetButton.connect('clicked(bool)', self.onSendTargetButton)
     self.sendInitButton.connect('clicked(bool)', self.onSendInitButton)
+    self.biopsyButton.connect('clicked(bool)', self.onBiopsyButton)
     self.sendReconnectButton.connect('clicked(bool)', self.onSendReconnectButton)
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
@@ -513,10 +534,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
         try:
           tempStatus2 = slicer.util.getNode('statusTarget')
           temp = tempStatus2.GetText()
-          targetValues = temp.split(" - ")
-          self.targetStatus.setText(targetValues[0])
+          self.targetValues = temp.split(" - ")
+          self.targetStatus.setText(self.targetValues[0])
           self.targetStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
-          self.angleStatus.setText(targetValues[1])
+          self.angleStatus.setText(self.targetValues[1])
           self.angleStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")  
         except:
           self.targetStatus.setText("No Controller connection")
@@ -551,6 +572,11 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     qt.QTimer.singleShot(2000, self.onTimeout)
 
+  def saveToLog(self,msg):
+    now = datetime.now()
+    dt_string = str(now.strftime("%d/%m/%Y %H:%M:%S"))
+    with open(self.filename, 'a') as f:
+      f.write(dt_string+msg)
 
   def getAngles(self,mtx):
     vTransform = vtk.vtkTransform()
@@ -561,13 +587,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onAbort(self):
     self.logic.sendAbort()
+    self.logfile.write('Movement aborted by the user \n')
     print("stop motion")
 
   def onzFrameButton(self):
     if self.logic.sendZFrame(self.zFrameSelector.currentNode()):
       self.zFrameStatus.setText("ZFrame sent")
       self.zFrameStatus.setStyleSheet("background-color: lightgreen;border: 1px solid black;")
-      print('- zFrame sent -\n')
+      self.saveToLog("sent z-Frame to ROS")
     else:
       print('- zFrame NOT sent -\n')
 
@@ -596,6 +623,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
   def onsendMoveButton(self):
     if self.logic.sendMove():
+      self.saveToLog("sent code to Move the device \n")
       print('- Move code sent -\n')
     else:
       print('- Move code NOT sent -\n')
@@ -603,6 +631,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   def onSendReconnectButton(self):
     if self.logic.sendReconnect():
       print('- Reconnection code sent -\n')
+      self.saveToLog("sent code to reconnect to Galil \n")
     else:
       print('- Reconnection code NOT sent -\n')
 
@@ -617,6 +646,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendMoveButton.enabled = True
     
     if self.logic.sendTarget(self.targetTransformation,self.selectedTarget,self.angleXWidget,self.angleYWidget):
+      self.saveToLog(" Sent target location and angle \n")
       print('- Target sent -\n')
     else:
       print('- Target NOT sent -\n')
@@ -674,6 +704,18 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
   #      destNode = slicer.util.getNode('pathModel')
   #      markupsToModel = slicer.modules.markupstomodel.logic().UpdateClosedSurfaceModel(path_points, destNode, True)
 
+  def onBiopsyButton(self):
+    biopsyNumber = qt.QInputDialog.getInt(self.targetTable, 'Input Dialog', 'Enter your roll:')
+    dlg = qt.QMessageBox()
+    dlg.setWindowTitle("Biospy taken")
+    dlg.setText("Save the biopsy location?")
+    dlg.setStandardButtons(qt.QMessageBox.Yes | qt.QMessageBox.No)
+    dlg.setIcon(qt.QMessageBox.Question)
+    button = dlg.exec()
+    if button == qt.QMessageBox.Yes:
+      self.saveToLog(" The biopsy core number "+str(biopsyNumber)+" was taken from insertion at target location: "+self.targetValues[0]+"\n" )
+    else:
+      print("No")
 
 
   def onDefineZFrame(self):

@@ -144,7 +144,6 @@ class HomingWidget(ScriptedLoadableModuleWidget):
     pixmap = qt.QPixmap('/home/smart/Documents/Modules/AngulatedInsertionPlanner/Homing/Resources/'+name+'.png')
     self.label.setPixmap(pixmap)
 
-
   def onApplyButton(self):
 
     dlg = qt.QMessageBox()
