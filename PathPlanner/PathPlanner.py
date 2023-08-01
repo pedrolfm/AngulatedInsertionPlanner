@@ -161,13 +161,13 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.segmentationSelector.setMRMLScene( slicer.mrmlScene )
     self.segmentationSelector.setToolTip( "Pick the segmentation." )
 
-    self.startSegmentation = qt.QPushButton("Segmentation")
-    self.startSegmentation.toolTip = "Segmentation module"
+    self.startSegmentation = qt.QPushButton("Add target")
+    self.startSegmentation.toolTip = "Add target"
     self.startSegmentation.enabled = True
-    parametersFormLayout.addRow(self.startSegmentation,self.segmentationSelector)
+    parametersFormLayout.addRow(self.startSegmentation,self.selectTarget)#,self.segmentationSelector)
 
 
-    parametersFormLayout.addRow(self.selectTarget)
+    #parametersFormLayout.addRow(self.selectTarget)
 
 #    label = qt.QLabel(self)
 #    pixmap = qt.QPixmap('/Users/pedro/Pictures/ChickenForce.png')
@@ -724,7 +724,14 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     print("Position tamplate limits")
 
   def onSegmentButton(self):
-    slicer.util.selectModule('Editor')
+    try:
+      targetList = slicer.util.getNode('IntraopTargets')
+    except:
+      targetList = slicer.vtkMRMLMarkupsFiducialNode()
+      targetList.SetName("IntraopTargets")
+      slicer.mrmlScene.AddNode(targetList)
+    slicer.modules.markups.logic().StartPlaceMode(targetList)
+    
   
   def onSelectTarget(self):
     slicer.util.getNode("vtkMRMLSliceNodeRed").SetOrientation("Axial")
