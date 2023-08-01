@@ -63,7 +63,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
 
     now = datetime.now()
     dt_string = str(now.strftime("%d/%m/%Y %H:%M:%S"))
-    self.filename = "/Users/pedro/Documents/test-save.txt"
+    self.filename = "/home/smart/Documents/test-save.txt"
     self.logfile = open(self.filename, 'w')
     self.logfile.write("Log file for Smart Template Clinical Trials \n")
     self.logfile.write('=========================== \n')
@@ -213,8 +213,8 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.replanXWidget.minimum = -20
     self.replanXWidget.maximum = 20
     self.replanXWidget.value = 0.0
-    self.replanXWidget.setToolTip("Target L-R")
-    replanFormLayout.addRow("L-R", self.replanXWidget)
+    self.replanXWidget.setToolTip("Target R-L")
+    replanFormLayout.addRow("R-L", self.replanXWidget)
 
     self.replanYWidget = ctk.ctkSliderWidget()
     self.replanYWidget.singleStep = 1
@@ -685,8 +685,9 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
       print('No Targets')
       return
     if self.selectedTarget:
-        self.currentTarget = [self.selectedTarget[0]+self.replanXWidget.value, self.selectedTarget[1]+self.replanYWidget.value, self.selectedTarget[2]];
-        targets.SetNthFiducialPosition(0, self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
+        row = self.targetTable.currentItem().row()
+        self.currentTarget = [self.selectedTarget[0]-self.replanXWidget.value, self.selectedTarget[1]-self.replanYWidget.value, self.selectedTarget[2]];
+        targets.SetNthFiducialPosition(row, self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
         path_points = slicer.util.getNode('path')
         path_points.SetNthFiducialPosition(0,self.currentTarget[0], self.currentTarget[1], self.currentTarget[2])
         self.logic.updatePoints(path_points, self.zDistance2Target,self.angleXWidget.value,self.angleYWidget.value,self.zFrameSelector.currentNode())
