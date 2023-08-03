@@ -166,7 +166,10 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.startSegmentation.enabled = True
     parametersFormLayout.addRow(self.startSegmentation,self.selectTarget)#,self.segmentationSelector)
 
-
+    self.updateImage = qt.QPushButton("update last image")
+    self.updateImage.toolTip = "update image"
+    self.updateImage.enabled = True
+    parametersFormLayout.addRow(self.updateImage)
     #parametersFormLayout.addRow(self.selectTarget)
 
 #    label = qt.QLabel(self)
@@ -380,7 +383,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     
 
     self.label4 = qt.QLabel()
-    self.label4.setText("No movement")
+    self.label4.setText("No movement sent")
     self.label4.setStyleSheet("background-color: white;border: 1px solid black;")
     self.label4.setAlignment(0x0004)
 
@@ -424,6 +427,7 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     self.sendMoveButton.connect('clicked(bool)', self.onsendMoveButton)
     self.startSegmentation.connect('clicked(bool)', self.onSegmentButton)
     self.abort.connect('clicked(bool)', self.onAbort)
+    self.updateImage.connect('clicked(bool)', self.onUpdateImage)
 
     qt.QTimer.singleShot(2000, self.onTimeout)
 
@@ -521,6 +525,8 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
           temp = tempString1.GetText()
           self.galilStatus.setText(temp)
           if temp == "No Galil connection":
+            self.label4.setText(temp)
+            self.label4.setStyleSheet("background-color: pink;white: 1px solid black;")
             self.galilStatus.setStyleSheet("background-color: pink;border: 1px solid black;")
           elif temp == "FTSW OFF":
             self.galilStatus.setStyleSheet("background-color: yellow;border: 1px solid black;")
@@ -584,6 +590,12 @@ class PathPlannerWidget(ScriptedLoadableModuleWidget):
     X = [0.0, 0.0, 0.0]
     vTransform.GetOrientation(X)
     return X
+
+  def onUpdateImage(self):
+    images = slicer.mrmlScene.GetNodesByClass("vtkMRMLScalarVolumeNode")
+    nOfImages = images.GetNumberOfItems()
+    print(nOfImages)
+    slicer.util.setSliceViewerLayers(background=images.GetItemAsObject(nOfImages-1), foreground=images.GetItemAsObject(nOfImages-2))
 
   def onAbort(self):
     self.logic.sendAbort()
